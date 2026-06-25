@@ -9,6 +9,7 @@
 </head>
 <body>
   <div class="app">
+
     <header class="app-header">
       <div class="header-left">
         <span class="logo">H&amp;L</span>
@@ -23,57 +24,40 @@
       </div>
     </header>
 
+    <!-- Income -->
     <div class="income-bar">
       <div class="income-person">
         <label>Henry</label>
-        <div class="income-inputs">
-          <input type="number" id="henry-planned" placeholder="Planned" min="0" step="50" />
-          <input type="number" id="henry-real" placeholder="Actual" min="0" step="50" />
-        </div>
+        <input type="number" id="henry-income" placeholder="Net income" min="0" step="50" />
       </div>
       <div class="income-totals">
         <div class="income-split" id="split-display">50% / 50%</div>
         <div class="income-total">
-          <span class="t-label">Planned</span>
-          <strong id="total-planned">€0</strong>
-        </div>
-        <div class="income-total">
-          <span class="t-label">Actual</span>
-          <strong id="total-real">€0</strong>
+          <span class="t-label">Total income</span>
+          <strong id="total-income">€0</strong>
         </div>
       </div>
       <div class="income-person income-person--right">
         <label>Lauri</label>
-        <div class="income-inputs">
-          <input type="number" id="lauri-planned" placeholder="Planned" min="0" step="50" />
-          <input type="number" id="lauri-real" placeholder="Actual" min="0" step="50" />
-        </div>
+        <input type="number" id="lauri-income" placeholder="Net income" min="0" step="50" />
       </div>
     </div>
 
-    <div class="summary-cards" id="summary-cards">
-      <div class="scard">
-        <span class="scard-label">Total expenses (planned)</span>
-        <span class="scard-value" id="s-exp-planned">€0</span>
-        <span class="scard-sub" id="s-exp-planned-pct">0% of income</span>
+    <!-- Budget rule selector -->
+    <div class="rule-bar">
+      <div class="rule-bar-left">
+        <span class="rule-label">Budget rule</span>
+        <div class="rule-pills" id="rule-pills"></div>
       </div>
-      <div class="scard">
-        <span class="scard-label">Total expenses (actual)</span>
-        <span class="scard-value" id="s-exp-real">€0</span>
-        <span class="scard-sub" id="s-exp-real-pct">0% of income</span>
-      </div>
-      <div class="scard">
-        <span class="scard-label">Remaining (planned)</span>
-        <span class="scard-value" id="s-rem-planned">€0</span>
-        <span class="scard-sub" id="s-rem-planned-sub">unallocated</span>
-      </div>
-      <div class="scard scard--accent">
-        <span class="scard-label">Remaining (actual)</span>
-        <span class="scard-value" id="s-rem-real">€0</span>
-        <span class="scard-sub" id="s-rem-real-sub">unallocated</span>
+      <div class="rule-bar-right">
+        <div class="rule-desc" id="rule-desc"></div>
       </div>
     </div>
 
+    <!-- Bucket summary -->
+    <div class="buckets" id="buckets"></div>
+
+    <!-- Category table -->
     <div class="categories-section">
       <div class="section-header">
         <h2>Expenses</h2>
@@ -81,7 +65,7 @@
       </div>
       <div class="cat-table-head">
         <span>Category / Item</span>
-        <span>Planned (€)</span>
+        <span>Budget</span>
         <span>Actual (€)</span>
         <span>Difference</span>
         <span>Henry / Lauri</span>
@@ -90,6 +74,7 @@
       <div id="cat-rows"></div>
     </div>
 
+    <!-- Who pays what -->
     <div class="split-section">
       <h2>Who pays what</h2>
       <div class="split-grid">
@@ -105,9 +90,10 @@
         </div>
       </div>
     </div>
+
   </div>
 
-  <!-- Add category / subcategory modal -->
+  <!-- Modal -->
   <div class="modal-backdrop" id="modal-backdrop" style="display:none">
     <div class="modal">
       <h3 id="modal-title">New category</h3>
@@ -117,6 +103,8 @@
         <label>Icon</label>
         <div class="icon-picker" id="icon-picker"></div>
       </div>
+      <label id="modal-bucket-label">Budget bucket</label>
+      <select id="modal-bucket" style="width:100%"></select>
       <div class="modal-actions">
         <button class="btn-ghost" id="modal-cancel">Cancel</button>
         <button class="btn-primary" id="modal-confirm">Add</button>
