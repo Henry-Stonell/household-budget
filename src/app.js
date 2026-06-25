@@ -137,9 +137,6 @@ function getBudgetData() {
 
 function uid()       { return Math.random().toString(36).slice(2,9); }
 function fmt(n)      { return '€' + Math.round(n).toLocaleString('de-DE'); }
-function clamp(v)    { return Math.max(0, Math.min(100, v)); }
-
-
 
 // Resolve actual henry/lauri amounts for a sub, respecting custom split
 function subAmounts(sub, rH, rL) {
@@ -219,7 +216,6 @@ function renderBuckets(totalIncome, data) {
     container.appendChild(card);
   });
 }
-
 
 // ─── Render / Recalc ──────────────────────────────────────────────────────────
 
@@ -638,7 +634,6 @@ function bindIncomeInputs() {
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
-
 
 async function init() {
   await loadState();
