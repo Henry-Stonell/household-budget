@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Henry & Lauri — Budget</title>
+  <link rel="stylesheet" href="src/style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='28'>🏠</text></svg>" />
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <div class="header-left">
+        <span class="logo">H&amp;L</span>
+        <div>
+          <h1>Household Budget</h1>
+          <p class="header-sub" id="header-month">—</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <select id="month-select" class="month-picker"></select>
+        <button class="btn-primary" id="btn-new-month">+ New month</button>
+      </div>
+    </header>
+
+    <div class="income-bar">
+      <div class="income-person">
+        <label>Henry</label>
+        <div class="income-inputs">
+          <input type="number" id="henry-planned" placeholder="Planned" min="0" step="50" />
+          <input type="number" id="henry-real" placeholder="Actual" min="0" step="50" />
+        </div>
+      </div>
+      <div class="income-totals">
+        <div class="income-split" id="split-display">50% / 50%</div>
+        <div class="income-total">
+          <span class="t-label">Planned</span>
+          <strong id="total-planned">€0</strong>
+        </div>
+        <div class="income-total">
+          <span class="t-label">Actual</span>
+          <strong id="total-real">€0</strong>
+        </div>
+      </div>
+      <div class="income-person income-person--right">
+        <label>Lauri</label>
+        <div class="income-inputs">
+          <input type="number" id="lauri-planned" placeholder="Planned" min="0" step="50" />
+          <input type="number" id="lauri-real" placeholder="Actual" min="0" step="50" />
+        </div>
+      </div>
+    </div>
+
+    <div class="summary-cards" id="summary-cards">
+      <div class="scard">
+        <span class="scard-label">Total expenses (planned)</span>
+        <span class="scard-value" id="s-exp-planned">€0</span>
+        <span class="scard-sub" id="s-exp-planned-pct">0% of income</span>
+      </div>
+      <div class="scard">
+        <span class="scard-label">Total expenses (actual)</span>
+        <span class="scard-value" id="s-exp-real">€0</span>
+        <span class="scard-sub" id="s-exp-real-pct">0% of income</span>
+      </div>
+      <div class="scard">
+        <span class="scard-label">Remaining (planned)</span>
+        <span class="scard-value" id="s-rem-planned">€0</span>
+        <span class="scard-sub" id="s-rem-planned-sub">unallocated</span>
+      </div>
+      <div class="scard scard--accent">
+        <span class="scard-label">Remaining (actual)</span>
+        <span class="scard-value" id="s-rem-real">€0</span>
+        <span class="scard-sub" id="s-rem-real-sub">unallocated</span>
+      </div>
+    </div>
+
+    <div class="categories-section">
+      <div class="section-header">
+        <h2>Expenses</h2>
+        <button class="btn-ghost" id="btn-add-cat">+ Add category</button>
+      </div>
+      <div class="cat-table-head">
+        <span>Category</span>
+        <span>Planned (€)</span>
+        <span>Actual (€)</span>
+        <span>Difference</span>
+        <span>Henry / Lauri</span>
+        <span></span>
+      </div>
+      <div id="cat-rows"></div>
+    </div>
+
+    <div class="split-section">
+      <h2>Who pays what</h2>
+      <div class="split-grid">
+        <div class="split-person">
+          <div class="split-person-header henry-color">Henry</div>
+          <div id="henry-split-rows"></div>
+          <div class="split-total" id="henry-total-row"></div>
+        </div>
+        <div class="split-person">
+          <div class="split-person-header lauri-color">Lauri</div>
+          <div id="lauri-split-rows"></div>
+          <div class="split-total" id="lauri-total-row"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add category modal -->
+  <div class="modal-backdrop" id="modal-backdrop" style="display:none">
+    <div class="modal">
+      <h3>New category</h3>
+      <label>Name</label>
+      <input type="text" id="new-cat-name" placeholder="e.g. Dining out" />
+      <label>Icon</label>
+      <div class="icon-picker" id="icon-picker"></div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="modal-cancel">Cancel</button>
+        <button class="btn-primary" id="modal-confirm">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="src/app.js"></script>
+</body>
+</html>
