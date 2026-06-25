@@ -332,3 +332,98 @@ select:focus, input:focus {
   .rule-bar { flex-direction: column; align-items: flex-start; }
   .rule-desc { display: none; }
 }
+
+/* ── Split slider ─────────────────────────────────────────────────── */
+
+.split-control {
+  display: flex; align-items: center; gap: 6px; font-size: 12px;
+}
+.split-label { min-width: 56px; font-size: 12px; }
+.split-label.henry-share { color: var(--henry); font-weight: 500; text-align: right; }
+.split-label.lauri-share { color: var(--lauri); font-weight: 500; }
+
+.split-slider-wrap {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--bg); border: 0.5px solid var(--border-strong);
+  border-radius: 100px; padding: 3px 8px;
+  transition: border-color 0.15s;
+}
+.split-slider-wrap.is-custom { border-color: var(--henry); background: var(--henry-light); }
+
+.split-pct { font-size: 11px; font-weight: 600; min-width: 26px; text-align: center; color: var(--text-muted); }
+.split-slider-wrap.is-custom .split-pct { color: var(--henry); }
+
+input[type="range"].split-slider {
+  width: 70px; height: 4px; border: none; border-radius: 2px;
+  background: var(--border-strong); padding: 0; cursor: pointer;
+  accent-color: var(--henry);
+}
+input[type="range"].split-slider:focus { box-shadow: none; border-color: transparent; }
+
+/* ── Personal budget section ──────────────────────────────────────── */
+
+.personal-section { margin-bottom: 2rem; }
+.personal-section .section-header { margin-bottom: 0.75rem; align-items: baseline; }
+.section-hint { font-size: 12px; color: var(--text-faint); }
+
+.personal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+.personal-card {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+}
+
+.personal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 1.25rem; gap: 1rem; flex-wrap: wrap;
+}
+.personal-header-left { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+.personal-header-right { display: flex; gap: 1rem; }
+.personal-stat { display: flex; flex-direction: column; align-items: flex-end; }
+.personal-stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7; }
+.personal-stat strong { font-size: 14px; }
+.personal-stat strong.over { color: var(--danger); }
+
+.personal-bar-track { height: 4px; background: var(--bg); }
+.personal-bar-fill { height: 100%; transition: width 0.4s ease; }
+.henry-bar { background: var(--henry); }
+.lauri-bar { background: var(--lauri); }
+
+.personal-body { overflow: hidden; max-height: 1000px; transition: max-height 0.2s ease; }
+.personal-body.collapsed { max-height: 0; }
+
+.personal-rows { }
+.personal-item-row {
+  display: grid; grid-template-columns: 1fr 120px 36px;
+  gap: 8px; align-items: center;
+  padding: 6px 1rem; border-bottom: 0.5px solid var(--border);
+  background: var(--bg); font-size: 13px;
+}
+.personal-add-row {
+  padding: 8px 1rem 8px calc(1rem + 40px);
+  border-top: 0.5px solid var(--border);
+  background: var(--bg);
+}
+
+/* Adjust cat-table-head for split column */
+.cat-table-head {
+  grid-template-columns: 2fr 90px 120px 110px 220px 36px;
+}
+.cat-parent-row {
+  grid-template-columns: 2fr 90px 120px 110px 220px 36px;
+}
+.cat-sub-row {
+  grid-template-columns: 2fr 90px 120px 110px 220px 36px;
+}
+
+@media (max-width: 960px) {
+  .cat-table-head, .cat-parent-row, .cat-sub-row {
+    grid-template-columns: 1fr 100px 80px;
+  }
+  .cat-table-head > *:nth-child(n+4),
+  .cat-parent-row > *:nth-child(n+4),
+  .cat-sub-row > *:nth-child(n+4) { display: none; }
+  .personal-grid { grid-template-columns: 1fr; }
+  .split-grid { grid-template-columns: 1fr; }
+  .personal-header { flex-direction: column; align-items: flex-start; }
+}

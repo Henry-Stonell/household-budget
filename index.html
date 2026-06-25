@@ -24,7 +24,6 @@
       </div>
     </header>
 
-    <!-- Income -->
     <div class="income-bar">
       <div class="income-person">
         <label>Henry</label>
@@ -43,7 +42,6 @@
       </div>
     </div>
 
-    <!-- Budget rule selector -->
     <div class="rule-bar">
       <div class="rule-bar-left">
         <span class="rule-label">Budget rule</span>
@@ -54,13 +52,11 @@
       </div>
     </div>
 
-    <!-- Bucket summary -->
     <div class="buckets" id="buckets"></div>
 
-    <!-- Category table -->
     <div class="categories-section">
       <div class="section-header">
-        <h2>Expenses</h2>
+        <h2>Shared expenses</h2>
         <button class="btn-ghost" id="btn-add-cat">+ Add category</button>
       </div>
       <div class="cat-table-head">
@@ -68,13 +64,23 @@
         <span>Budget</span>
         <span>Actual (€)</span>
         <span>Difference</span>
-        <span>Henry / Lauri</span>
+        <span>Split</span>
         <span></span>
       </div>
       <div id="cat-rows"></div>
     </div>
 
-    <!-- Who pays what -->
+    <div class="personal-section">
+      <div class="section-header">
+        <h2>Personal budgets</h2>
+        <span class="section-hint">Based on what's left after shared expenses &amp; savings</span>
+      </div>
+      <div class="personal-grid">
+        <div id="henry-personal" class="personal-card"></div>
+        <div id="lauri-personal" class="personal-card"></div>
+      </div>
+    </div>
+
     <div class="split-section">
       <h2>Who pays what</h2>
       <div class="split-grid">
@@ -93,7 +99,6 @@
 
   </div>
 
-  <!-- Modal -->
   <div class="modal-backdrop" id="modal-backdrop" style="display:none">
     <div class="modal">
       <h3 id="modal-title">New category</h3>
