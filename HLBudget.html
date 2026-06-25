@@ -1,3 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Henry &amp; Lauri — Budget</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='28'>🏠</text></svg>" />
+  <style>
+:root {
+  --henry: #534AB7;
+  --henry-light: #EEEDFE;
+  --lauri: #0F6E56;
+  --lauri-light: #E1F5EE;
+  --bg: #F7F6F3;
+  --surface: #FFFFFF;
+  --border: rgba(0,0,0,0.09);
+  --border-strong: rgba(0,0,0,0.16);
+  --text: #1A1A18;
+  --text-muted: #6B6B67;
+  --text-faint: #9E9E9A;
+  --danger: #C0392B;
+  --danger-light: #FCEBEB;
+  --success: #0F6E56;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16161A;
+    --surface: #1E1E24;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.18);
+    --text: #F0EFF8;
+    --text-muted: #9B9AA8;
+    --text-faint: #5E5D6A;
+    --henry-light: #26215C;
+    --lauri-light: #04342C;
+    --danger-light: #3A1515;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+.app { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem 4rem; }
+
+/* ── Header ── */
+.app-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1.5rem 0 1.25rem;
+  border-bottom: 0.5px solid var(--border);
+  margin-bottom: 1.5rem; gap: 1rem;
+}
+.header-left { display: flex; align-items: center; gap: 14px; }
+.logo {
+  width: 40px; height: 40px; background: var(--henry); color: #fff;
+  border-radius: var(--radius-sm); display: flex; align-items: center;
+  justify-content: center; font-size: 13px; font-weight: 600;
+  letter-spacing: 0.02em; flex-shrink: 0;
+}
+.app-header h1 { font-size: 18px; font-weight: 600; }
+.header-sub { font-size: 13px; color: var(--text-muted); margin-top: 1px; }
+.header-right { display: flex; align-items: center; gap: 8px; }
+
+/* ── Controls ── */
+select, input[type="number"], input[type="text"] {
+  background: var(--surface);
+  border: 0.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  padding: 6px 10px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+select:focus, input:focus {
+  border-color: var(--henry);
+  box-shadow: 0 0 0 2px rgba(83,74,183,0.15);
+}
+.month-picker { padding: 6px 28px 6px 10px; }
+
+.btn-primary {
+  background: var(--henry); color: #fff; border: none;
+  border-radius: var(--radius-sm); font-family: var(--font);
+  font-size: 13px; font-weight: 500; padding: 7px 14px;
+  cursor: pointer; transition: opacity 0.15s;
+}
+.btn-primary:hover { opacity: 0.88; }
+
+.btn-ghost {
+  background: transparent; color: var(--text-muted);
+  border: 0.5px solid var(--border-strong); border-radius: var(--radius-sm);
+  font-family: var(--font); font-size: 13px; padding: 6px 13px;
+  cursor: pointer; transition: background 0.15s;
+}
+.btn-ghost:hover { background: var(--border); }
+
+.btn-icon {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--text-faint); font-size: 14px; padding: 4px;
+  border-radius: 4px; line-height: 1; transition: color 0.15s, background 0.15s;
+}
+.btn-icon:hover { color: var(--danger); background: var(--danger-light); }
+
+/* ── Income bar ── */
+.income-bar {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--radius); padding: 1.25rem 1.5rem;
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; gap: 1.5rem; margin-bottom: 1rem;
+}
+.income-person label {
+  display: block; font-size: 12px; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 6px;
+}
+.income-person input { width: 160px; }
+.income-person--right { text-align: right; }
+.income-person--right input { float: right; }
+.income-totals { text-align: center; }
+.income-split {
+  font-size: 12px; background: var(--henry-light); color: var(--henry);
+  border-radius: 100px; padding: 3px 12px; display: inline-block;
+  font-weight: 600; margin-bottom: 6px;
+}
+.income-total { display: flex; align-items: baseline; justify-content: center; gap: 6px; }
+.t-label { font-size: 12px; color: var(--text-muted); }
+.income-total strong { font-size: 16px; font-weight: 600; }
+
+/* ── Rule bar ── */
+.rule-bar {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--radius); padding: 1rem 1.5rem;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;
+}
+.rule-bar-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.rule-label { font-size: 12px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-muted); white-space: nowrap; }
+.rule-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.rule-pill {
+  background: transparent; border: 0.5px solid var(--border-strong);
+  border-radius: 100px; font-family: var(--font); font-size: 12px;
+  font-weight: 500; padding: 5px 14px; cursor: pointer;
+  color: var(--text-muted); transition: all 0.15s;
+}
+.rule-pill:hover { border-color: var(--henry); color: var(--henry); }
+.rule-pill.active {
+  background: var(--henry); color: #fff; border-color: var(--henry);
+}
+.rule-desc { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+
+/* ── Bucket cards ── */
+.buckets {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px; margin-bottom: 1.5rem;
+}
+.bucket-card {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--radius); padding: 1rem 1.25rem;
+}
+.bucket-top {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 10px; gap: 8px;
+}
+.bucket-name { font-size: 13px; font-weight: 600; display: block; margin-bottom: 4px; }
+.bucket-pct-badge {
+  font-size: 11px; font-weight: 700; padding: 2px 7px;
+  border-radius: 100px; display: inline-block;
+}
+.bucket-amounts { text-align: right; }
+.bucket-budget { display: block; font-size: 11px; color: var(--text-muted); }
+.bucket-actual { display: block; font-size: 16px; font-weight: 600; }
+.bucket-actual.over { color: var(--danger); }
+
+.bucket-bar-track {
+  background: var(--bg); border-radius: 4px; height: 6px; overflow: hidden; margin-bottom: 6px;
+}
+.bucket-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+
+.bucket-foot { display: flex; justify-content: space-between; font-size: 11px; }
+.bucket-used { color: var(--text-faint); }
+.bucket-diff { font-weight: 600; }
+.bucket-diff.over { color: var(--danger); }
+.bucket-diff.under { color: var(--success); }
+
+/* ── Section header ── */
+.categories-section { margin-bottom: 2rem; }
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+.section-header h2 { font-size: 15px; font-weight: 600; }
+
+/* ── Table header ── */
+.cat-table-head {
+  display: grid;
+  grid-template-columns: 2fr 90px 120px 110px 160px 36px;
+  gap: 8px; padding: 6px 1rem;
+  font-size: 11px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.05em;
+  border-bottom: 0.5px solid var(--border); margin-bottom: 4px;
+}
+
+/* ── Category group ── */
+.cat-group { margin-bottom: 5px; }
+
+.cat-parent-row {
+  display: grid;
+  grid-template-columns: 2fr 90px 120px 110px 160px 36px;
+  gap: 8px; align-items: center;
+  padding: 10px 1rem;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.cat-parent-left { display: flex; align-items: center; gap: 8px; }
+.cat-parent-name { font-size: 14px; font-weight: 600; }
+.cat-parent-total { font-size: 14px; font-weight: 600; }
+.cat-emoji { font-size: 18px; line-height: 1; }
+
+.bucket-tag {
+  font-size: 11px; font-weight: 600; padding: 2px 7px;
+  border-radius: 100px; white-space: nowrap;
+}
+
+.btn-chevron {
+  background: none; border: none; cursor: pointer; font-size: 10px;
+  color: var(--text-muted); padding: 2px 4px; border-radius: 3px;
+  transition: background 0.1s; line-height: 1; flex-shrink: 0;
+}
+.btn-chevron:hover { background: var(--border); }
+
+/* ── Subs ── */
+.subs-wrap { overflow: hidden; max-height: 2000px; transition: max-height 0.2s ease; }
+.subs-wrap.collapsed { max-height: 0; }
+
+.cat-sub-row {
+  display: grid;
+  grid-template-columns: 2fr 90px 120px 110px 160px 36px;
+  gap: 8px; align-items: center;
+  padding: 6px 1rem 6px 1.25rem;
+  border-bottom: 0.5px solid var(--border);
+  background: var(--bg); transition: background 0.1s;
+}
+.cat-sub-row:hover { background: var(--surface); }
+
+.sub-name-cell { display: flex; align-items: center; gap: 6px; padding-left: 28px; }
+.sub-indent { color: var(--text-faint); font-size: 12px; }
+.sub-name-text { font-size: 13px; color: var(--text-muted); }
+.sub-budget-cell { font-size: 13px; color: var(--text-faint); }
+.sub-input { width: 100%; font-size: 13px; }
+
+.add-sub-row {
+  padding: 6px 1rem 6px calc(1.25rem + 40px);
+  background: var(--bg);
+  border-bottom: 0.5px solid var(--border);
+  border-bottom-left-radius: var(--radius-sm);
+  border-bottom-right-radius: var(--radius-sm);
+}
+.btn-add-sub {
+  background: none; border: 0.5px dashed var(--border-strong);
+  border-radius: var(--radius-sm); color: var(--text-muted);
+  font-family: var(--font); font-size: 12px; padding: 4px 12px;
+  cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.btn-add-sub:hover { color: var(--henry); border-color: var(--henry); background: var(--henry-light); }
+
+/* ── Diff pill ── */
+.diff-pill {
+  font-size: 12px; font-weight: 600; padding: 3px 8px;
+  border-radius: 100px; display: inline-block;
+}
+.diff-pill.positive { background: var(--lauri-light); color: var(--lauri); }
+.diff-pill.negative { background: var(--danger-light); color: var(--danger); }
+.diff-pill.neutral  { background: var(--bg); color: var(--text-faint); }
+
+.split-display-cell { font-size: 12px; }
+.henry-share { color: var(--henry); font-weight: 500; }
+.lauri-share { color: var(--lauri); font-weight: 500; }
+
+/* ── Split section ── */
+.split-section { }
+.split-section h2 { font-size: 15px; font-weight: 600; margin-bottom: 0.75rem; }
+.split-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.split-person { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.split-person-header { padding: 10px 1.25rem; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.henry-color { background: var(--henry-light); color: var(--henry); }
+.lauri-color { background: var(--lauri-light); color: var(--lauri); }
+.split-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 1.25rem; border-bottom: 0.5px solid var(--border); font-size: 13px; }
+.split-row-name { color: var(--text-muted); }
+.split-amt.real { font-weight: 500; }
+.split-total { display: flex; justify-content: space-between; padding: 10px 1.25rem; font-weight: 600; font-size: 14px; }
+
+/* ── Modal ── */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+  display: flex; align-items: center; justify-content: center; z-index: 100;
+}
+.modal {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 1.5rem; width: 380px; display: flex; flex-direction: column; gap: 10px;
+}
+.modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+.modal label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.modal input[type="text"] { width: 100%; }
+.icon-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+.icon-opt {
+  font-size: 20px; padding: 6px 8px; border-radius: var(--radius-sm);
+  cursor: pointer; border: 1.5px solid transparent; transition: border-color 0.1s, background 0.1s; line-height: 1;
+}
+.icon-opt:hover { background: var(--bg); }
+.icon-opt.selected { border-color: var(--henry); background: var(--henry-light); }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+
+/* ── Responsive ── */
+@media (max-width: 860px) {
+  .income-bar { grid-template-columns: 1fr; }
+  .income-person--right { text-align: left; }
+  .income-person--right input { float: none; }
+  .cat-table-head, .cat-parent-row, .cat-sub-row {
+    grid-template-columns: 1fr 100px 80px;
+  }
+  .cat-table-head > *:nth-child(n+4),
+  .cat-parent-row > *:nth-child(n+4),
+  .cat-sub-row > *:nth-child(n+4) { display: none; }
+  .split-grid { grid-template-columns: 1fr; }
+  .rule-bar { flex-direction: column; align-items: flex-start; }
+  .rule-desc { display: none; }
+}
+
+  /* ── Export/Import bar ── */
+  .data-bar {
+    display: flex; align-items: center; justify-content: flex-end;
+    gap: 8px; padding: 8px 0 0;
+    border-top: 0.5px solid var(--border);
+    margin-top: 2rem;
+  }
+  .data-bar-label { font-size: 12px; color: var(--text-faint); margin-right: 4px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+
+    <header class="app-header">
+      <div class="header-left">
+        <span class="logo">H&amp;L</span>
+        <div>
+          <h1>Household Budget</h1>
+          <p class="header-sub" id="header-month">—</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <select id="month-select" class="month-picker"></select>
+        <button class="btn-primary" id="btn-new-month">+ New month</button>
+      </div>
+    </header>
+
+    <div class="income-bar">
+      <div class="income-person">
+        <label>Henry</label>
+        <input type="number" id="henry-income" placeholder="Net income" min="0" step="50" />
+      </div>
+      <div class="income-totals">
+        <div class="income-split" id="split-display">50% / 50%</div>
+        <div class="income-total">
+          <span class="t-label">Total income</span>
+          <strong id="total-income">€0</strong>
+        </div>
+      </div>
+      <div class="income-person income-person--right">
+        <label>Lauri</label>
+        <input type="number" id="lauri-income" placeholder="Net income" min="0" step="50" />
+      </div>
+    </div>
+
+    <div class="rule-bar">
+      <div class="rule-bar-left">
+        <span class="rule-label">Budget rule</span>
+        <div class="rule-pills" id="rule-pills"></div>
+      </div>
+      <div class="rule-bar-right">
+        <div class="rule-desc" id="rule-desc"></div>
+      </div>
+    </div>
+
+    <div class="buckets" id="buckets"></div>
+
+    <div class="categories-section">
+      <div class="section-header">
+        <h2>Expenses</h2>
+        <button class="btn-ghost" id="btn-add-cat">+ Add category</button>
+      </div>
+      <div class="cat-table-head">
+        <span>Category / Item</span>
+        <span>Budget</span>
+        <span>Actual (€)</span>
+        <span>Difference</span>
+        <span>Henry / Lauri</span>
+        <span></span>
+      </div>
+      <div id="cat-rows"></div>
+    </div>
+
+    <div class="split-section">
+      <h2>Who pays what</h2>
+      <div class="split-grid">
+        <div class="split-person">
+          <div class="split-person-header henry-color">Henry</div>
+          <div id="henry-split-rows"></div>
+          <div class="split-total" id="henry-total-row"></div>
+        </div>
+        <div class="split-person">
+          <div class="split-person-header lauri-color">Lauri</div>
+          <div id="lauri-split-rows"></div>
+          <div class="split-total" id="lauri-total-row"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="data-bar">
+      <span class="data-bar-label">Data:</span>
+      <button class="btn-ghost" id="btn-export">⬇ Export backup</button>
+      <button class="btn-ghost" id="btn-import">⬆ Import backup</button>
+      <input type="file" id="import-file" accept=".json" style="display:none" />
+    </div>
+
+  </div>
+
+  <div class="modal-backdrop" id="modal-backdrop" style="display:none">
+    <div class="modal">
+      <h3 id="modal-title">New category</h3>
+      <label>Name</label>
+      <input type="text" id="new-cat-name" placeholder="e.g. Fuel" />
+      <div id="modal-icon-row">
+        <label>Icon</label>
+        <div class="icon-picker" id="icon-picker"></div>
+      </div>
+      <label id="modal-bucket-label">Budget bucket</label>
+      <select id="modal-bucket" style="width:100%"></select>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="modal-cancel">Cancel</button>
+        <button class="btn-primary" id="modal-confirm">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
 // ─── Budget rules ─────────────────────────────────────────────────────────────
 
 const RULES = {
@@ -124,7 +584,7 @@ let state = {
 // ─── Persistence ──────────────────────────────────────────────────────────────
 // Uses Electron file storage when running as desktop app, localStorage as fallback.
 
-const isElectron = typeof window !== 'undefined' && !!window.electronAPI;
+const isElectron = false;
 
 function migrateState(s) {
   Object.values(s.months || {}).forEach(month => {
@@ -574,3 +1034,45 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+
+  // ── Export / Import ──────────────────────────────────────────────────────────
+  document.getElementById('btn-export').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10);
+    a.href = url; a.download = `hl-budget-backup-${date}.json`;
+    a.click(); URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('btn-import').addEventListener('click', () => {
+    document.getElementById('import-file').click();
+  });
+
+  document.getElementById('import-file').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        if (!imported.months) throw new Error('Invalid backup file');
+        if (!confirm('This will replace all your current data. Continue?')) return;
+        state = imported;
+        if (!state.activeRule) state.activeRule = '50-30-20';
+        saveState();
+        refreshMonthPicker();
+        renderRuleBar();
+        render();
+        alert('Data imported successfully.');
+      } catch (err) {
+        alert('Could not read file: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+  </script>
+</body>
+</html>

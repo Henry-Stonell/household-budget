@@ -1,0 +1,28 @@
+{
+  "name": "hl-budget",
+  "version": "1.0.0",
+  "description": "Henry & Lauri Household Budget",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64"
+  },
+  "build": {
+    "appId": "com.hl.budget",
+    "productName": "H&L Budget",
+    "directories": { "output": "dist" },
+    "win": {
+      "target": "portable",
+      "icon": "electron/icon.ico"
+    },
+    "files": [
+      "electron/**/*",
+      "index.html",
+      "src/**/*"
+    ]
+  },
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-builder": "^24.0.0"
+  }
+}
