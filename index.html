@@ -20,6 +20,7 @@
       </div>
       <div class="header-right">
         <select id="month-select" class="month-picker"></select>
+        <button class="btn-ghost btn-icon-only" id="btn-delete-month" title="Delete this month">🗑</button>
         <button class="btn-primary" id="btn-new-month">+ New month</button>
       </div>
     </header>
@@ -113,6 +114,21 @@
       <div class="modal-actions">
         <button class="btn-ghost" id="modal-cancel">Cancel</button>
         <button class="btn-primary" id="modal-confirm">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- New month modal -->
+  <div class="modal-backdrop" id="month-modal-backdrop" style="display:none">
+    <div class="modal">
+      <h3>Create month</h3>
+      <label>Month</label>
+      <select id="new-month-month" style="width:100%"></select>
+      <label>Year</label>
+      <select id="new-month-year" style="width:100%"></select>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="month-modal-cancel">Cancel</button>
+        <button class="btn-primary" id="month-modal-confirm">Create</button>
       </div>
     </div>
   </div>

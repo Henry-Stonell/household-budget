@@ -438,3 +438,16 @@ input[type="range"].split-slider:focus { box-shadow: none; border-color: transpa
   border-bottom-right-radius: var(--radius-sm);
   margin-bottom: 5px;
 }
+
+/* Delete month button in header */
+.btn-icon-only {
+  padding: 6px 10px;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-muted);
+}
+.btn-icon-only:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: var(--danger-light);
+}

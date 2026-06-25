@@ -654,6 +654,79 @@ function bindIncomeInputs() {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
+
+// ─── Month modal ──────────────────────────────────────────────────────────────
+
+function openMonthModal() {
+  const monthSel = document.getElementById('new-month-month');
+  const yearSel  = document.getElementById('new-month-year');
+  const months = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+  monthSel.innerHTML = '';
+  months.forEach((name, i) => {
+    const opt = document.createElement('option');
+    opt.value = String(i+1).padStart(2,'0');
+    opt.textContent = name;
+    monthSel.appendChild(opt);
+  });
+  // Default to next logical month
+  const keys = Object.keys(state.months).sort();
+  const last  = keys[keys.length-1] || currentMonthKey();
+  const [ly, lm] = last.split('-').map(Number);
+  const nm = lm===12 ? 1 : lm+1;
+  const ny = lm===12 ? ly+1 : ly;
+  monthSel.value = String(nm).padStart(2,'0');
+
+  yearSel.innerHTML = '';
+  const curYear = new Date().getFullYear();
+  for (let y = curYear - 2; y <= curYear + 5; y++) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    if (y === ny) opt.selected = true;
+    yearSel.appendChild(opt);
+  }
+
+  document.getElementById('month-modal-backdrop').style.display = 'flex';
+}
+
+function closeMonthModal() {
+  document.getElementById('month-modal-backdrop').style.display = 'none';
+}
+
+function confirmNewMonth() {
+  const m   = document.getElementById('new-month-month').value;
+  const y   = document.getElementById('new-month-year').value;
+  const key = `${y}-${m}`;
+  if (state.months[key]) {
+    // Already exists — just switch to it
+    state.activeMonth = key;
+  } else {
+    getMonthData(key);
+    state.activeMonth = key;
+  }
+  saveState();
+  refreshMonthPicker();
+  render();
+  closeMonthModal();
+}
+
+function deleteActiveMonth() {
+  const keys = Object.keys(state.months).sort();
+  if (keys.length <= 1) {
+    alert("You can't delete the only month.");
+    return;
+  }
+  const label = monthLabel(state.activeMonth);
+  if (!confirm(`Delete ${label} and all its data? This can't be undone.`)) return;
+  delete state.months[state.activeMonth];
+  // Switch to most recent remaining month
+  const remaining = Object.keys(state.months).sort().reverse();
+  state.activeMonth = remaining[0];
+  saveState();
+  refreshMonthPicker();
+  render();
+}
+
 async function init() {
   await loadState();
   if (!state.activeRule) state.activeRule='50-30-20';
@@ -661,12 +734,13 @@ async function init() {
   if (!state.activeMonth||!state.months[state.activeMonth]) { state.activeMonth=cur; getMonthData(cur); }
   renderRuleBar(); refreshMonthPicker(); bindIncomeInputs();
   document.getElementById('month-select').addEventListener('change',e=>{ state.activeMonth=e.target.value; render(); });
-  document.getElementById('btn-new-month').addEventListener('click',()=>{
-    const keys=Object.keys(state.months).sort();
-    const last=keys[keys.length-1]||currentMonthKey();
-    const [y,m]=last.split('-').map(Number);
-    const next=m===12?`${y+1}-01`:`${y}-${String(m+1).padStart(2,'0')}`;
-    getMonthData(next); state.activeMonth=next; saveState(); refreshMonthPicker(); render();
+  // ── Month management ──
+  document.getElementById('btn-new-month').addEventListener('click', openMonthModal);
+  document.getElementById('btn-delete-month').addEventListener('click', deleteActiveMonth);
+  document.getElementById('month-modal-cancel').addEventListener('click', closeMonthModal);
+  document.getElementById('month-modal-confirm').addEventListener('click', confirmNewMonth);
+  document.getElementById('month-modal-backdrop').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeMonthModal();
   });
   document.getElementById('btn-add-cat').addEventListener('click',openCatModal);
   document.getElementById('modal-cancel').addEventListener('click',closeModal);
