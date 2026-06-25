@@ -198,7 +198,7 @@ select:focus, input:focus {
 /* ── Table header ── */
 .cat-table-head {
   display: grid;
-  grid-template-columns: 2fr 90px 120px 110px 160px 36px;
+  grid-template-columns: 2fr 90px 120px 110px 190px 120px 44px;
   gap: 8px; padding: 6px 1rem;
   font-size: 11px; color: var(--text-muted);
   text-transform: uppercase; letter-spacing: 0.05em;
@@ -210,7 +210,7 @@ select:focus, input:focus {
 
 .cat-parent-row {
   display: grid;
-  grid-template-columns: 2fr 90px 120px 110px 160px 36px;
+  grid-template-columns: 2fr 90px 120px 110px 190px 120px 44px;
   gap: 8px; align-items: center;
   padding: 10px 1rem;
   background: var(--surface);
@@ -240,7 +240,7 @@ select:focus, input:focus {
 
 .cat-sub-row {
   display: grid;
-  grid-template-columns: 2fr 90px 120px 110px 160px 36px;
+  grid-template-columns: 2fr 90px 120px 110px 190px 120px 44px;
   gap: 8px; align-items: center;
   padding: 6px 1rem 6px 1.25rem;
   border-bottom: 0.5px solid var(--border);
@@ -404,25 +404,15 @@ input[type="range"].split-slider:focus { box-shadow: none; border-color: transpa
   background: var(--bg);
 }
 
-/* Adjust cat-table-head for split + payer columns */
-.cat-table-head {
-  grid-template-columns: 2fr 90px 120px 110px 200px 110px 36px;
-}
-.cat-parent-row {
-  grid-template-columns: 2fr 90px 120px 110px 200px 110px 36px;
-}
-.cat-sub-row {
-  grid-template-columns: 2fr 90px 120px 110px 200px 110px 36px;
-}
+/* grid columns defined in main block above */
 
 @media (max-width: 960px) {
   .cat-table-head, .cat-parent-row, .cat-sub-row {
-    grid-template-columns: 1fr 100px 80px;
+    grid-template-columns: 1fr 110px 80px;
   }
   .cat-table-head > *:nth-child(n+4),
   .cat-parent-row > *:nth-child(n+4),
   .cat-sub-row > *:nth-child(n+4) { display: none; }
-  .payer-select { display: none; }
   .personal-grid { grid-template-columns: 1fr; }
   .split-grid { grid-template-columns: 1fr; }
   .personal-header { flex-direction: column; align-items: flex-start; }
@@ -516,17 +506,20 @@ input[type="range"].split-slider:focus { box-shadow: none; border-color: transpa
 /* ── Payer select ─────────────────────────────────────────────────── */
 .payer-select {
   font-size: 12px;
-  padding: 4px 6px;
+  padding: 5px 8px;
   border-radius: var(--radius-sm);
   border: 0.5px solid var(--border-strong);
   background: var(--surface);
-  color: var(--text-muted);
+  color: var(--text);
   cursor: pointer;
   width: 100%;
+  min-width: 110px;
+  appearance: auto;
+  -webkit-appearance: auto;
 }
-.payer-select:focus { border-color: var(--henry); }
-.payer-select option[value="henry"] { color: var(--henry); }
-.payer-select option[value="lauri"] { color: var(--lauri); }
+.payer-select:focus { border-color: var(--henry); box-shadow: 0 0 0 2px rgba(83,74,183,0.15); }
+.payer-select[value="henry"], .payer-select.pays-henry { border-color: var(--henry); background: var(--henry-light); color: var(--henry); font-weight: 600; }
+.payer-select.pays-lauri { border-color: var(--lauri); background: var(--lauri-light); color: var(--lauri); font-weight: 600; }
 
 /* ── Transfers section ────────────────────────────────────────────── */
 .transfers-wrap {

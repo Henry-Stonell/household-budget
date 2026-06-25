@@ -385,10 +385,10 @@ function renderCatRows(data, rH, rL) {
           </div>
           <span class="lauri-share split-label">L: ${fmt(lAmt)}</span>
         </div>
-        <select class="payer-select" data-cidx="${cIdx}" data-sidx="${sIdx}" title="Whose account pays this in full?">
-          <option value="">Split</option>
-          <option value="henry" ${sub.payer==='henry'?'selected':''}>Henry pays</option>
-          <option value="lauri" ${sub.payer==='lauri'?'selected':''}>Lauri pays</option>
+        <select class="payer-select ${sub.payer==='henry'?'pays-henry':sub.payer==='lauri'?'pays-lauri':''}" data-cidx="${cIdx}" data-sidx="${sIdx}" title="Whose account pays this in full?">
+          <option value="">No preference</option>
+          <option value="henry" ${sub.payer==='henry'?'selected':''}>💳 Henry pays</option>
+          <option value="lauri" ${sub.payer==='lauri'?'selected':''}>💳 Lauri pays</option>
         </select>
         <button class="btn-icon btn-del-sub" data-cidx="${cIdx}" data-sidx="${sIdx}" title="Remove">✕</button>`;
       subsWrap.appendChild(subRow);
@@ -458,7 +458,9 @@ function renderCatRows(data, rH, rL) {
   container.querySelectorAll('.payer-select').forEach(sel=>{
     sel.addEventListener('change',e=>{
       const {cidx,sidx}=e.target.dataset;
-      data.categories[+cidx].subs[+sidx].payer=e.target.value||null;
+      const val=e.target.value||null;
+      data.categories[+cidx].subs[+sidx].payer=val;
+      e.target.className='payer-select'+(val==='henry'?' pays-henry':val==='lauri'?' pays-lauri':'');
       recalc();
     });
   });
