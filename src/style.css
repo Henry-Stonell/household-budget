@@ -438,3 +438,75 @@ input[type="range"].split-slider:focus { box-shadow: none; border-color: transpa
   margin-bottom: 5px;
 }
 
+
+/* ── Tabs ─────────────────────────────────────────────────────────── */
+.tab-bar {
+  display: flex; gap: 4px;
+  border-bottom: 0.5px solid var(--border);
+  margin-bottom: 1.5rem; margin-top: 0.5rem;
+}
+.tab-btn {
+  background: none; border: none; border-bottom: 2px solid transparent;
+  font-family: var(--font); font-size: 14px; font-weight: 500;
+  color: var(--text-muted); padding: 8px 16px; cursor: pointer;
+  margin-bottom: -1px; transition: color 0.15s, border-color 0.15s;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--henry); border-bottom-color: var(--henry); }
+
+/* ── Export buttons ───────────────────────────────────────────────── */
+.header-right { display: flex; align-items: center; gap: 8px; }
+
+/* ── Split remaining row ──────────────────────────────────────────── */
+.split-remaining {
+  display: flex; justify-content: space-between;
+  padding: 8px 1.25rem 10px;
+  font-size: 13px; font-weight: 600;
+  border-top: 0.5px dashed var(--border);
+  color: var(--text-muted);
+}
+.split-remaining .over { color: var(--danger); }
+
+/* ── Disposable summary ───────────────────────────────────────────── */
+.disp-section { margin-top: 2rem; margin-bottom: 2rem; }
+.disp-section h2 { font-size: 15px; font-weight: 600; margin-bottom: 0.75rem; }
+.disp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.disp-card {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--radius); padding: 1.25rem;
+}
+.disp-person {
+  font-size: 13px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; margin-bottom: 10px;
+}
+.henry-color-text { color: var(--henry); }
+.lauri-color-text { color: var(--lauri); }
+.disp-row {
+  display: flex; justify-content: space-between;
+  padding: 5px 0; font-size: 13px;
+  border-bottom: 0.5px solid var(--border);
+}
+.disp-row:last-child { border: none; font-weight: 700; font-size: 14px; margin-top: 4px; }
+.disp-label { color: var(--text-muted); }
+.disp-row .over { color: var(--danger); }
+
+/* ── Charts ───────────────────────────────────────────────────────── */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.chart-card {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--radius); padding: 1.25rem;
+}
+.chart-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 1rem; color: var(--text-muted); }
+.chart-card--wide { grid-column: 1 / -1; }
+.chart-wrap { height: 260px; position: relative; }
+
+@media (max-width: 700px) {
+  .charts-grid { grid-template-columns: 1fr; }
+  .chart-card--wide { grid-column: 1; }
+  .disp-grid { grid-template-columns: 1fr; }
+}

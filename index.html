@@ -6,6 +6,7 @@
   <title>Henry & Lauri — Budget</title>
   <link rel="stylesheet" href="src/style.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='28'>🏠</text></svg>" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
   <div class="app">
@@ -18,8 +19,13 @@
           <p class="header-sub">Henry &amp; Lauri</p>
         </div>
       </div>
+      <div class="header-right">
+        <button class="btn-ghost" id="btn-export-excel">⬇ Excel</button>
+        <button class="btn-ghost" id="btn-export-pdf">⬇ PDF</button>
+      </div>
     </header>
 
+    <!-- Income -->
     <div class="income-bar">
       <div class="income-person">
         <label>Henry</label>
@@ -38,6 +44,7 @@
       </div>
     </div>
 
+    <!-- Budget rule -->
     <div class="rule-bar">
       <div class="rule-bar-left">
         <span class="rule-label">Budget rule</span>
@@ -48,53 +55,92 @@
       </div>
     </div>
 
+    <!-- Bucket overview -->
     <div class="buckets" id="buckets"></div>
 
-    <div class="categories-section">
-      <div class="section-header">
-        <h2>Shared expenses</h2>
-        <button class="btn-ghost" id="btn-add-cat">+ Add category</button>
-      </div>
-      <div class="cat-table-head">
-        <span>Category / Item</span>
-        <span>Budget</span>
-        <span>Actual (€)</span>
-        <span>Difference</span>
-        <span>Split</span>
-        <span></span>
-      </div>
-      <div id="cat-rows"></div>
+    <!-- Tabs -->
+    <div class="tab-bar">
+      <button class="tab-btn" data-tab="budget">Budget</button>
+      <button class="tab-btn" data-tab="charts">Charts</button>
     </div>
 
-    <div class="personal-section">
-      <div class="section-header">
-        <h2>Personal budgets</h2>
-        <span class="section-hint">Based on what's left after shared expenses &amp; savings</span>
-      </div>
-      <div class="personal-grid">
-        <div id="henry-personal" class="personal-card"></div>
-        <div id="lauri-personal" class="personal-card"></div>
-      </div>
-    </div>
+    <!-- ── Budget tab ── -->
+    <div class="tab-panel" data-panel="budget">
 
-    <div class="split-section">
-      <h2>Who pays what</h2>
-      <div class="split-grid">
-        <div class="split-person">
-          <div class="split-person-header henry-color">Henry</div>
-          <div id="henry-split-rows"></div>
-          <div class="split-total" id="henry-total-row"></div>
+      <div class="categories-section">
+        <div class="section-header">
+          <h2>Shared expenses</h2>
+          <button class="btn-ghost" id="btn-add-cat">+ Add category</button>
         </div>
-        <div class="split-person">
-          <div class="split-person-header lauri-color">Lauri</div>
-          <div id="lauri-split-rows"></div>
-          <div class="split-total" id="lauri-total-row"></div>
+        <div class="cat-table-head">
+          <span>Category / Item</span>
+          <span>Budget</span>
+          <span>Actual (€)</span>
+          <span>Difference</span>
+          <span>Split</span>
+          <span></span>
+        </div>
+        <div id="cat-rows"></div>
+      </div>
+
+      <div class="personal-section">
+        <div class="section-header">
+          <h2>Personal expenses</h2>
+          <span class="section-hint">Individual monthly bills &amp; discretionary spend</span>
+        </div>
+        <div class="personal-grid">
+          <div id="henry-personal" class="personal-card"></div>
+          <div id="lauri-personal" class="personal-card"></div>
+        </div>
+      </div>
+
+      <div class="split-section">
+        <h2>Who pays what</h2>
+        <div class="split-grid">
+          <div class="split-person">
+            <div class="split-person-header henry-color">Henry</div>
+            <div id="henry-split-rows"></div>
+            <div class="split-total" id="henry-total-row"></div>
+            <div class="split-remaining" id="henry-remaining-row"></div>
+          </div>
+          <div class="split-person">
+            <div class="split-person-header lauri-color">Lauri</div>
+            <div id="lauri-split-rows"></div>
+            <div class="split-total" id="lauri-total-row"></div>
+            <div class="split-remaining" id="lauri-remaining-row"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Disposable summary -->
+      <div class="disp-section">
+        <h2>Net remaining</h2>
+        <div class="disp-grid" id="disposable-cards"></div>
+      </div>
+
+    </div>
+
+    <!-- ── Charts tab ── -->
+    <div class="tab-panel" data-panel="charts" style="display:none">
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>Spending breakdown</h3>
+          <div class="chart-wrap"><canvas id="chart-breakdown"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Income vs expenses per person</h3>
+          <div class="chart-wrap"><canvas id="chart-income-spend"></canvas></div>
+        </div>
+        <div class="chart-card chart-card--wide">
+          <h3>Budget rule — target vs actual</h3>
+          <div class="chart-wrap"><canvas id="chart-buckets"></canvas></div>
         </div>
       </div>
     </div>
 
   </div>
 
+  <!-- Modal -->
   <div class="modal-backdrop" id="modal-backdrop" style="display:none">
     <div class="modal">
       <h3 id="modal-title">New category</h3>
