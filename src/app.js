@@ -56,17 +56,17 @@ function defaultCategories(ruleId) {
                     : ruleId === 'zero'      ? 'all' : 'needs';
   return [
     { id:'housing',   emoji:'🏠', name:'Housing',           collapsed:true, bucket: ruleId==='envelope'?'housing':needsBucket,
-      subs:[{id:uid(),name:'Rent / mortgage',real:0,splitH:50,splitL:50}] },
+      subs:[{id:uid(),name:'Rent / mortgage',real:0,splitH:null,splitL:null}] },
     { id:'groceries', emoji:'🛒', name:'Groceries & food',  collapsed:true, bucket: ruleId==='envelope'?'food':needsBucket,
-      subs:[{id:uid(),name:'Supermarket',real:0,splitH:50,splitL:50},{id:uid(),name:'Takeaway & dining',real:0,splitH:50,splitL:50}] },
+      subs:[{id:uid(),name:'Supermarket',real:0,splitH:null,splitL:null},{id:uid(),name:'Takeaway & dining',real:0,splitH:null,splitL:null}] },
     { id:'transport', emoji:'🚗', name:'Transport',         collapsed:true, bucket: ruleId==='envelope'?'transport':needsBucket,
-      subs:[{id:uid(),name:'Car payment',real:0,splitH:50,splitL:50},{id:uid(),name:'Fuel',real:0,splitH:30,splitL:70},{id:uid(),name:'Public transport',real:0,splitH:50,splitL:50}] },
+      subs:[{id:uid(),name:'Car payment',real:0,splitH:null,splitL:null},{id:uid(),name:'Fuel',real:0,splitH:null,splitL:null},{id:uid(),name:'Public transport',real:0,splitH:null,splitL:null}] },
     { id:'utilities', emoji:'⚡', name:'Utilities & bills', collapsed:true, bucket: ruleId==='envelope'?'other':needsBucket,
-      subs:[{id:uid(),name:'Electricity',real:0,splitH:50,splitL:50},{id:uid(),name:'Internet',real:0,splitH:50,splitL:50},{id:uid(),name:'Phone',real:0,splitH:50,splitL:50}] },
+      subs:[{id:uid(),name:'Electricity',real:0,splitH:null,splitL:null},{id:uid(),name:'Internet',real:0,splitH:null,splitL:null},{id:uid(),name:'Phone',real:0,splitH:null,splitL:null}] },
     { id:'savings',   emoji:'💰', name:'Savings',           collapsed:true, bucket: ruleId==='envelope'?'savings':bSav,
-      subs:[{id:uid(),name:'Emergency fund',real:0,splitH:50,splitL:50},{id:uid(),name:'Investments',real:0,splitH:50,splitL:50}] },
+      subs:[{id:uid(),name:'Emergency fund',real:0,splitH:null,splitL:null},{id:uid(),name:'Investments',real:0,splitH:null,splitL:null}] },
     { id:'kids',      emoji:'👶', name:'Kids & family',     collapsed:true, bucket: ruleId==='envelope'?'other':needsBucket,
-      subs:[{id:uid(),name:'Childcare',real:0,splitH:50,splitL:50},{id:uid(),name:'Activities',real:0,splitH:50,splitL:50}] },
+      subs:[{id:uid(),name:'Childcare',real:0,splitH:null,splitL:null},{id:uid(),name:'Activities',real:0,splitH:null,splitL:null}] },
   ];
 }
 
@@ -85,7 +85,7 @@ function migrateState(s) {
     (month.categories||[]).forEach(cat => {
       if (cat.collapsed === undefined) cat.collapsed = true;
       (cat.subs||[]).forEach(sub => {
-        if (sub.splitH === undefined) { sub.splitH = 50; sub.splitL = 50; }
+        if (sub.splitH === undefined) { sub.splitH = null; sub.splitL = null; }
       });
     });
     // Migrate personal budgets
@@ -145,8 +145,9 @@ function currentMonthKey() {
 // Resolve actual henry/lauri amounts for a sub, respecting custom split
 function subAmounts(sub, rH, rL) {
   const real = +sub.real || 0;
-  const sH = (sub.splitH ?? 50) / 100;
-  const sL = (sub.splitL ?? 50) / 100;
+  // null = use income ratio; explicit value = custom override
+  const sH = sub.splitH !== null && sub.splitH !== undefined ? sub.splitH / 100 : rH;
+  const sL = sub.splitL !== null && sub.splitL !== undefined ? sub.splitL / 100 : rL;
   return { henry: real * sH, lauri: real * sL };
 }
 
@@ -314,11 +315,12 @@ function renderCatRows(data, rH, rL) {
 
     (cat.subs||[]).forEach((sub, sIdx) => {
       const real  = +sub.real||0;
-      const sH    = sub.splitH??50;
-      const sL    = sub.splitL??50;
-      const isCustom = !(sH===50 && sL===50);
-      const hAmt  = real * sH/100;
-      const lAmt  = real * sL/100;
+      const hasCustom = sub.splitH !== null && sub.splitH !== undefined;
+      const sH    = hasCustom ? sub.splitH : Math.round(rH*100);
+      const sL    = hasCustom ? sub.splitL : Math.round(rL*100);
+      const isCustom = hasCustom;
+      const hAmt  = real * (hasCustom ? sH/100 : rH);
+      const lAmt  = real * (hasCustom ? sL/100 : rL);
 
       const subRow = document.createElement('div');
       subRow.className = 'cat-sub-row';
@@ -335,7 +337,7 @@ function renderCatRows(data, rH, rL) {
           <span class="henry-share split-label">H: ${fmt(hAmt)}</span>
           <div class="split-slider-wrap ${isCustom?'is-custom':''}">
             <span class="split-pct henry-pct">${sH}%</span>
-            <input type="range" class="split-slider" min="0" max="100" step="5"
+            <input type="range" class="split-slider" title="Double-click to reset to income ratio" min="0" max="100" step="5"
               value="${sH}" data-cidx="${cIdx}" data-sidx="${sIdx}" />
             <span class="split-pct lauri-pct">${sL}%</span>
           </div>
@@ -381,7 +383,7 @@ function renderCatRows(data, rH, rL) {
       const wrap = e.target.closest('.split-control');
       wrap.querySelector('.henry-pct').textContent = sH+'%';
       wrap.querySelector('.lauri-pct').textContent = sL+'%';
-      wrap.querySelector('.split-slider-wrap').classList.toggle('is-custom', !(sH===50&&sL===50));
+      wrap.querySelector('.split-slider-wrap').classList.add('is-custom');
       const real = +sub.real||0;
       wrap.querySelector('.henry-share').textContent = 'H: '+fmt(real*sH/100);
       wrap.querySelector('.lauri-share').textContent = 'L: '+fmt(real*sL/100);
@@ -389,6 +391,13 @@ function renderCatRows(data, rH, rL) {
       // Debounced full recalc for totals
       clearTimeout(slider._t);
       slider._t = setTimeout(recalc, 300);
+    });
+    // Double-click resets to income ratio
+    slider.addEventListener('dblclick', e => {
+      const {cidx, sidx} = e.target.dataset;
+      const sub = data.categories[+cidx].subs[+sidx];
+      sub.splitH = null; sub.splitL = null;
+      recalc();
     });
   });
 
@@ -634,7 +643,7 @@ function confirmModal() {
     const bucket=(bucketEl&&bucketEl.options.length>0)?bucketEl.value:RULES[state.activeRule].buckets[0].id;
     data.categories.push({id:uid(),emoji:selectedIcon,name,collapsed:true,bucket,subs:[]});
   } else if (modalMode==='sub') {
-    data.categories[modalCatIdx].subs.push({id:uid(),name,real:0,splitH:50,splitL:50});
+    data.categories[modalCatIdx].subs.push({id:uid(),name,real:0,splitH:null,splitL:null});
     data.categories[modalCatIdx].collapsed=false;
   } else if (modalMode==='personal') {
     data.personal[modalPerson].subs.push({id:uid(),name,real:0});
