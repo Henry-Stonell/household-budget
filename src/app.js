@@ -129,8 +129,8 @@ function getBudgetData() {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function uid()  { return Math.random().toString(36).slice(2,9); }
-function fmt(n) { return '€' + Math.round(n).toLocaleString('de-DE'); }
-function fmtN(n){ return Math.round(n).toLocaleString('de-DE'); }
+function fmt(n) { return '€' + Number(n).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function fmtN(n){ return Number(n).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 function subAmounts(sub, rH, rL) {
   const real = +sub.real||0;
@@ -244,8 +244,8 @@ function renderBuckets(t) {
     if(actualByBucket[bId]!==undefined) actualByBucket[bId]+=catTotal(cat);
   });
   rule.buckets.forEach(b=>{
-    const budget=Math.round(t.total*b.pct/100);
-    const actual=Math.round(actualByBucket[b.id]||0);
+    const budget=t.total*b.pct/100;
+    const actual=actualByBucket[b.id]||0;
     const diff=actual-budget;
     const usedPct=budget>0?Math.min(100,Math.round(actual/budget*100)):0;
     const over=actual>budget;
@@ -569,8 +569,8 @@ function renderTransfers(t) {
 
   // henryNet > 0 means Henry overpaid → Lauri owes Henry
   // henryNet < 0 means Henry underpaid → Henry owes Lauri
-  const amount = Math.abs(Math.round(t.henryNet));
-  const noTransfer = amount < 1;
+  const amount = Math.abs(t.henryNet);
+  const noTransfer = amount < 0.01;
 
   let html = '';
   if (noTransfer) {
@@ -597,19 +597,19 @@ function renderTransfers(t) {
   html += `<div class="transfer-detail">
     <div class="transfer-detail-row">
       <span class="henry-color-text">Henry paid from account</span>
-      <span>${fmt(Math.round(t.henryPaid))}</span>
+      <span>${fmt(t.henryPaid)}</span>
     </div>
     <div class="transfer-detail-row">
       <span class="henry-color-text">Henry's actual share</span>
-      <span>${fmt(Math.round(t.henryOwed))}</span>
+      <span>${fmt(t.henryOwed)}</span>
     </div>
     <div class="transfer-detail-row">
       <span class="lauri-color-text">Lauri paid from account</span>
-      <span>${fmt(Math.round(t.lauriPaid))}</span>
+      <span>${fmt(t.lauriPaid)}</span>
     </div>
     <div class="transfer-detail-row">
       <span class="lauri-color-text">Lauri's actual share</span>
-      <span>${fmt(Math.round(t.lauriOwed))}</span>
+      <span>${fmt(t.lauriOwed)}</span>
     </div>
   </div>`;
 
@@ -682,7 +682,7 @@ function renderCharts(t) {
         plugins:{ legend:{ labels:{color:textColor} } },
         scales:{
           x:{ ticks:{color:textColor}, grid:{color:gridColor} },
-          y:{ ticks:{color:textColor, callback:v=>'€'+Math.round(v).toLocaleString('de-DE')}, grid:{color:gridColor} }
+          y:{ ticks:{color:textColor, callback:v=>Number(v).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})}, grid:{color:gridColor} }
         }
       }
     });
@@ -713,8 +713,8 @@ function renderCharts(t) {
       data:{
         labels:rule.buckets.map(b=>b.label),
         datasets:[
-          { label:'Budget', data:rule.buckets.map(b=>Math.round(t.total*b.pct/100)), backgroundColor:rule.buckets.map(b=>b.color+'66'), borderRadius:6 },
-          { label:'Actual', data:rule.buckets.map(b=>Math.round(actualByBucket[b.id]||0)), backgroundColor:rule.buckets.map(b=>b.color), borderRadius:6 },
+          { label:'Budget', data:rule.buckets.map(b=>t.total*b.pct/100), backgroundColor:rule.buckets.map(b=>b.color+'66'), borderRadius:6 },
+          { label:'Actual', data:rule.buckets.map(b=>actualByBucket[b.id]||0), backgroundColor:rule.buckets.map(b=>b.color), borderRadius:6 },
         ]
       },
       options:{
@@ -722,7 +722,7 @@ function renderCharts(t) {
         plugins:{ legend:{ labels:{color:textColor} } },
         scales:{
           x:{ ticks:{color:textColor}, grid:{color:gridColor} },
-          y:{ ticks:{color:textColor, callback:v=>'€'+Math.round(v).toLocaleString('de-DE')}, grid:{color:gridColor} }
+          y:{ ticks:{color:textColor, callback:v=>Number(v).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})}, grid:{color:gridColor} }
         }
       }
     });
@@ -759,10 +759,10 @@ function exportExcel() {
   });
   rows.push([]);
   rows.push(['SUMMARY','','','','Henry','Lauri']);
-  rows.push(['','Total shared','','',Math.round(t.henryShared),Math.round(t.lauriShared)]);
+  rows.push(['','Total shared','','',t.henryShared.toFixed(2),t.lauriShared.toFixed(2)]);
   rows.push(['','Total personal','','',t.henryPersonal,t.lauriPersonal]);
-  rows.push(['','Total spent','','',Math.round(t.henryTotal),Math.round(t.lauriTotal)]);
-  rows.push(['','Remaining','','',Math.round(t.henryDisposable),Math.round(t.lauriDisposable)]);
+  rows.push(['','Total spent','','',t.henryTotal.toFixed(2),t.lauriTotal.toFixed(2)]);
+  rows.push(['','Remaining','','',t.henryDisposable.toFixed(2),t.lauriDisposable.toFixed(2)]);
 
   // Build CSV (xlsx without SheetJS — clean CSV that Excel opens perfectly)
   const csv=rows.map(r=>r.map(c=>{
