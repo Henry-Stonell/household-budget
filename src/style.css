@@ -80,7 +80,6 @@ select:focus, input:focus {
   border-color: var(--henry);
   box-shadow: 0 0 0 2px rgba(83,74,183,0.15);
 }
-.month-picker { padding: 6px 28px 6px 10px; }
 
 .btn-primary {
   background: var(--henry); color: #fff; border: none;
@@ -439,15 +438,3 @@ input[type="range"].split-slider:focus { box-shadow: none; border-color: transpa
   margin-bottom: 5px;
 }
 
-/* Delete month button in header */
-.btn-icon-only {
-  padding: 6px 10px;
-  font-size: 15px;
-  line-height: 1;
-  color: var(--text-muted);
-}
-.btn-icon-only:hover {
-  color: var(--danger);
-  border-color: var(--danger);
-  background: var(--danger-light);
-}

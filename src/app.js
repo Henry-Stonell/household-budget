@@ -74,26 +74,32 @@ const ICONS = ['🏠','🛒','🚗','⚡','💰','👶','🍽️','🎬','🏥',
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
-let state = { months:{}, activeMonth:null, activeRule:'50-30-20' };
+let state = { budget: null, activeRule:'50-30-20' };
 
 // ─── Persistence ──────────────────────────────────────────────────────────────
 
 const isElectron = typeof window !== 'undefined' && !!window.electronAPI;
 
 function migrateState(s) {
-  Object.values(s.months||{}).forEach(month => {
-    (month.categories||[]).forEach(cat => {
+  // Support old month-based data — pull first month into flat budget
+  if (s.months && !s.budget) {
+    const keys = Object.keys(s.months).sort();
+    s.budget = keys.length ? s.months[keys[keys.length-1]] : null;
+    delete s.months;
+    delete s.activeMonth;
+  }
+  if (s.budget) {
+    (s.budget.categories||[]).forEach(cat => {
       if (cat.collapsed === undefined) cat.collapsed = true;
       (cat.subs||[]).forEach(sub => {
         if (sub.splitH === undefined) { sub.splitH = null; sub.splitL = null; }
       });
     });
-    // Migrate personal budgets
-    if (!month.personal) month.personal = {
+    if (!s.budget.personal) s.budget.personal = {
       henry: { collapsed:true, subs:[] },
       lauri: { collapsed:true, subs:[] },
     };
-  });
+  }
   return s;
 }
 
@@ -112,9 +118,9 @@ async function loadState() {
   }
 }
 
-function getMonthData(key) {
-  if (!state.months[key]) {
-    state.months[key] = {
+function getBudgetData() {
+  if (!state.budget) {
+    state.budget = {
       henry: 2200, lauri: 2200,
       categories: defaultCategories(state.activeRule || '50-30-20'),
       personal: {
@@ -124,7 +130,7 @@ function getMonthData(key) {
     };
     saveState();
   }
-  return state.months[key];
+  return state.budget;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -133,14 +139,7 @@ function uid()       { return Math.random().toString(36).slice(2,9); }
 function fmt(n)      { return '€' + Math.round(n).toLocaleString('de-DE'); }
 function clamp(v)    { return Math.max(0, Math.min(100, v)); }
 
-function monthLabel(key) {
-  const [y,m] = key.split('-');
-  return new Date(+y,+m-1,1).toLocaleString('en-GB',{month:'long',year:'numeric'});
-}
-function currentMonthKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-}
+
 
 // Resolve actual henry/lauri amounts for a sub, respecting custom split
 function subAmounts(sub, rH, rL) {
@@ -221,25 +220,11 @@ function renderBuckets(totalIncome, data) {
   });
 }
 
-// ─── Month picker ─────────────────────────────────────────────────────────────
-
-function refreshMonthPicker() {
-  const sel = document.getElementById('month-select');
-  const keys = Object.keys(state.months).sort().reverse();
-  sel.innerHTML = '';
-  keys.forEach(k => {
-    const opt = document.createElement('option');
-    opt.value=k; opt.textContent=monthLabel(k);
-    if (k===state.activeMonth) opt.selected=true;
-    sel.appendChild(opt);
-  });
-}
 
 // ─── Render / Recalc ──────────────────────────────────────────────────────────
 
 function render() {
-  const data = getMonthData(state.activeMonth);
-  document.getElementById('header-month').textContent = monthLabel(state.activeMonth);
+  const data = getBudgetData();
   const hi = document.getElementById('henry-income');
   const li = document.getElementById('lauri-income');
   if (document.activeElement!==hi) hi.value = data.henry||'';
@@ -248,7 +233,7 @@ function render() {
 }
 
 function recalc() {
-  const data   = getMonthData(state.activeMonth);
+  const data   = getBudgetData();
   const henry  = +data.henry||0;
   const lauri  = +data.lauri||0;
   const total  = henry+lauri;
@@ -503,7 +488,7 @@ function renderPersonalSection(person, data, disposable, spent) {
   container.querySelectorAll('.personal-sub-input').forEach(input => {
     input.addEventListener('change', e => {
       const {person:p2, sidx} = e.target.dataset;
-      data.personal[p2].subs[+sidx].real = +e.target.value||0;
+      getBudgetData().personal[p2].subs[+sidx].real = +e.target.value||0;
       recalc();
     });
   });
@@ -576,7 +561,7 @@ function openSubModal(cIdx) {
   document.getElementById('modal-icon-row').style.display='none';
   document.getElementById('modal-bucket-label').style.display='none';
   document.getElementById('modal-bucket').style.display='none';
-  const data = getMonthData(state.activeMonth);
+  const data = getBudgetData();
   document.getElementById('modal-title').textContent=`Add item to "${data.categories[cIdx].name}"`;
   document.getElementById('modal-backdrop').style.display='flex';
   setTimeout(()=>document.getElementById('new-cat-name').focus(),50);
@@ -626,7 +611,7 @@ function buildBucketSelect(currentBucket) {
 function confirmModal() {
   const name=document.getElementById('new-cat-name').value.trim();
   if(!name){document.getElementById('new-cat-name').focus();return;}
-  const data=getMonthData(state.activeMonth);
+  const data=getBudgetData();
   if (modalMode==='category') {
     const bucketEl=document.getElementById('modal-bucket');
     const bucket=(bucketEl&&bucketEl.options.length>0)?bucketEl.value:RULES[state.activeRule].buckets[0].id;
@@ -645,103 +630,21 @@ function confirmModal() {
 
 function bindIncomeInputs() {
   document.getElementById('henry-income').addEventListener('change',()=>{
-    getMonthData(state.activeMonth).henry=+document.getElementById('henry-income').value||0; recalc();
+    getBudgetData().henry=+document.getElementById('henry-income').value||0; recalc();
   });
   document.getElementById('lauri-income').addEventListener('change',()=>{
-    getMonthData(state.activeMonth).lauri=+document.getElementById('lauri-income').value||0; recalc();
+    getBudgetData().lauri=+document.getElementById('lauri-income').value||0; recalc();
   });
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 
-// ─── Month modal ──────────────────────────────────────────────────────────────
-
-function openMonthModal() {
-  const monthSel = document.getElementById('new-month-month');
-  const yearSel  = document.getElementById('new-month-year');
-  const months = ['January','February','March','April','May','June',
-                  'July','August','September','October','November','December'];
-  monthSel.innerHTML = '';
-  months.forEach((name, i) => {
-    const opt = document.createElement('option');
-    opt.value = String(i+1).padStart(2,'0');
-    opt.textContent = name;
-    monthSel.appendChild(opt);
-  });
-  // Default to next logical month
-  const keys = Object.keys(state.months).sort();
-  const last  = keys[keys.length-1] || currentMonthKey();
-  const [ly, lm] = last.split('-').map(Number);
-  const nm = lm===12 ? 1 : lm+1;
-  const ny = lm===12 ? ly+1 : ly;
-  monthSel.value = String(nm).padStart(2,'0');
-
-  yearSel.innerHTML = '';
-  const curYear = new Date().getFullYear();
-  for (let y = curYear - 2; y <= curYear + 5; y++) {
-    const opt = document.createElement('option');
-    opt.value = y; opt.textContent = y;
-    if (y === ny) opt.selected = true;
-    yearSel.appendChild(opt);
-  }
-
-  document.getElementById('month-modal-backdrop').style.display = 'flex';
-}
-
-function closeMonthModal() {
-  document.getElementById('month-modal-backdrop').style.display = 'none';
-}
-
-function confirmNewMonth() {
-  const m   = document.getElementById('new-month-month').value;
-  const y   = document.getElementById('new-month-year').value;
-  const key = `${y}-${m}`;
-  if (state.months[key]) {
-    // Already exists — just switch to it
-    state.activeMonth = key;
-  } else {
-    getMonthData(key);
-    state.activeMonth = key;
-  }
-  saveState();
-  refreshMonthPicker();
-  render();
-  closeMonthModal();
-}
-
-function deleteActiveMonth() {
-  const keys = Object.keys(state.months).sort();
-  if (keys.length <= 1) {
-    alert("You can't delete the only month.");
-    return;
-  }
-  const label = monthLabel(state.activeMonth);
-  if (!confirm(`Delete ${label} and all its data? This can't be undone.`)) return;
-  delete state.months[state.activeMonth];
-  // Switch to most recent remaining month
-  const remaining = Object.keys(state.months).sort().reverse();
-  state.activeMonth = remaining[0];
-  saveState();
-  refreshMonthPicker();
-  render();
-}
-
 async function init() {
   await loadState();
   if (!state.activeRule) state.activeRule='50-30-20';
-  const cur=currentMonthKey();
-  if (!state.activeMonth||!state.months[state.activeMonth]) { state.activeMonth=cur; getMonthData(cur); }
-  renderRuleBar(); refreshMonthPicker(); bindIncomeInputs();
-  document.getElementById('month-select').addEventListener('change',e=>{ state.activeMonth=e.target.value; render(); });
-  // ── Month management ──
-  document.getElementById('btn-new-month').addEventListener('click', openMonthModal);
-  document.getElementById('btn-delete-month').addEventListener('click', deleteActiveMonth);
-  document.getElementById('month-modal-cancel').addEventListener('click', closeMonthModal);
-  document.getElementById('month-modal-confirm').addEventListener('click', confirmNewMonth);
-  document.getElementById('month-modal-backdrop').addEventListener('click', e => {
-    if (e.target === e.currentTarget) closeMonthModal();
-  });
+  getBudgetData(); // ensure data initialised
+  renderRuleBar(); bindIncomeInputs();
   document.getElementById('btn-add-cat').addEventListener('click',openCatModal);
   document.getElementById('modal-cancel').addEventListener('click',closeModal);
   document.getElementById('modal-confirm').addEventListener('click',confirmModal);
