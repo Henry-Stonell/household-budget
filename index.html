@@ -80,7 +80,7 @@
         <button class="btn-ghost" id="btn-add-cat">+ Add category</button>
       </div>
       <div class="cat-table-head">
-        <span>Category</span>
+        <span>Category / Item</span>
         <span>Planned (€)</span>
         <span>Actual (€)</span>
         <span>Difference</span>
@@ -107,14 +107,16 @@
     </div>
   </div>
 
-  <!-- Add category modal -->
+  <!-- Add category / subcategory modal -->
   <div class="modal-backdrop" id="modal-backdrop" style="display:none">
     <div class="modal">
-      <h3>New category</h3>
+      <h3 id="modal-title">New category</h3>
       <label>Name</label>
-      <input type="text" id="new-cat-name" placeholder="e.g. Dining out" />
-      <label>Icon</label>
-      <div class="icon-picker" id="icon-picker"></div>
+      <input type="text" id="new-cat-name" placeholder="e.g. Fuel" />
+      <div id="modal-icon-row">
+        <label>Icon</label>
+        <div class="icon-picker" id="icon-picker"></div>
+      </div>
       <div class="modal-actions">
         <button class="btn-ghost" id="modal-cancel">Cancel</button>
         <button class="btn-primary" id="modal-confirm">Add</button>

@@ -1,18 +1,55 @@
 // ─── State ────────────────────────────────────────────────────────────────────
 
 const DEFAULT_CATEGORIES = [
-  { id: 'housing',    emoji: '🏠', name: 'Housing',              planned: 1200, real: 0 },
-  { id: 'groceries',  emoji: '🛒', name: 'Groceries & food',     planned: 400,  real: 0 },
-  { id: 'transport',  emoji: '🚗', name: 'Transport',            planned: 200,  real: 0 },
-  { id: 'utilities',  emoji: '⚡', name: 'Utilities & bills',    planned: 150,  real: 0 },
-  { id: 'savings',    emoji: '💰', name: 'Savings',              planned: 300,  real: 0 },
-  { id: 'kids',       emoji: '👶', name: 'Kids & family',        planned: 250,  real: 0 },
+  {
+    id: 'housing', emoji: '🏠', name: 'Housing', collapsed: false,
+    subs: [
+      { id: uid(), name: 'Rent / mortgage', planned: 1200, real: 0 },
+    ]
+  },
+  {
+    id: 'groceries', emoji: '🛒', name: 'Groceries & food', collapsed: false,
+    subs: [
+      { id: uid(), name: 'Supermarket', planned: 300, real: 0 },
+      { id: uid(), name: 'Takeaway & dining', planned: 100, real: 0 },
+    ]
+  },
+  {
+    id: 'transport', emoji: '🚗', name: 'Transport', collapsed: false,
+    subs: [
+      { id: uid(), name: 'Car payment', planned: 0, real: 0 },
+      { id: uid(), name: 'Fuel', planned: 100, real: 0 },
+      { id: uid(), name: 'Public transport', planned: 60, real: 0 },
+    ]
+  },
+  {
+    id: 'utilities', emoji: '⚡', name: 'Utilities & bills', collapsed: false,
+    subs: [
+      { id: uid(), name: 'Electricity', planned: 80, real: 0 },
+      { id: uid(), name: 'Internet', planned: 40, real: 0 },
+      { id: uid(), name: 'Phone', planned: 30, real: 0 },
+    ]
+  },
+  {
+    id: 'savings', emoji: '💰', name: 'Savings', collapsed: false,
+    subs: [
+      { id: uid(), name: 'Emergency fund', planned: 200, real: 0 },
+      { id: uid(), name: 'Investments', planned: 100, real: 0 },
+    ]
+  },
+  {
+    id: 'kids', emoji: '👶', name: 'Kids & family', collapsed: false,
+    subs: [
+      { id: uid(), name: 'Childcare', planned: 200, real: 0 },
+      { id: uid(), name: 'Activities', planned: 50, real: 0 },
+    ]
+  },
 ];
 
-const ICONS = ['🏠','🛒','🚗','⚡','💰','👶','🍽️','🎬','🏥','📱','🐾','🧴','🎓','✈️','🏋️','🎁','🧾','🔧','🌿','💻'];
+const ICONS = ['🏠','🛒','🚗','⚡','💰','👶','🍽️','🎬','🏥','📱','🐾','🧴','🎓','✈️','🏋️','🎁','🧾','🔧','🌿','💻','🎯','🐶','🎵','🛁','🍺','👗','🏖️','🎮'];
 
 let state = {
-  months: {},       // { "2026-06": { henry, lauri, categories } }
+  months: {},
   activeMonth: null,
 };
 
@@ -24,9 +61,7 @@ function saveState() {
 
 function loadState() {
   const raw = localStorage.getItem('hl-budget');
-  if (raw) {
-    try { state = JSON.parse(raw); } catch {}
-  }
+  if (raw) { try { state = JSON.parse(raw); } catch {} }
 }
 
 function getMonthData(key) {
@@ -43,6 +78,10 @@ function getMonthData(key) {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function uid() {
+  return Math.random().toString(36).slice(2, 9);
+}
+
 function fmt(n) {
   return '€' + Math.round(n).toLocaleString('de-DE');
 }
@@ -57,8 +96,10 @@ function currentMonthKey() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function uid() {
-  return Math.random().toString(36).slice(2, 8);
+function catTotals(cat) {
+  let planned = 0, real = 0;
+  (cat.subs || []).forEach(s => { planned += +s.planned || 0; real += +s.real || 0; });
+  return { planned, real };
 }
 
 // ─── Month picker ─────────────────────────────────────────────────────────────
@@ -80,22 +121,22 @@ function refreshMonthPicker() {
 
 function render() {
   const data = getMonthData(state.activeMonth);
-
-  // Header month label
   document.getElementById('header-month').textContent = monthLabel(state.activeMonth);
-
-  // Income fields
   setInputVal('henry-planned', data.henry.planned);
-  setInputVal('henry-real', data.henry.real);
+  setInputVal('henry-real',    data.henry.real);
   setInputVal('lauri-planned', data.lauri.planned);
-  setInputVal('lauri-real', data.lauri.real);
-
+  setInputVal('lauri-real',    data.lauri.real);
   recalc();
 }
 
 function setInputVal(id, val) {
   const el = document.getElementById(id);
   if (el && document.activeElement !== el) el.value = val || '';
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
 }
 
 // ─── Recalc ───────────────────────────────────────────────────────────────────
@@ -107,26 +148,24 @@ function recalc() {
   const hR = +data.henry.real    || 0;
   const lP = +data.lauri.planned || 0;
   const lR = +data.lauri.real    || 0;
-
   const totalP = hP + lP;
   const totalR = hR + lR;
 
-  // Ratios
   const rHP = totalP > 0 ? hP / totalP : 0.5;
   const rLP = totalP > 0 ? lP / totalP : 0.5;
   const rHR = totalR > 0 ? hR / totalR : 0.5;
   const rLR = totalR > 0 ? lR / totalR : 0.5;
 
-  // Split display
   document.getElementById('split-display').textContent =
     `${Math.round(rHP * 100)}% / ${Math.round(rLP * 100)}%`;
-
   document.getElementById('total-planned').textContent = fmt(totalP);
-  document.getElementById('total-real').textContent = fmt(totalR);
+  document.getElementById('total-real').textContent    = fmt(totalR);
 
-  // Expenses totals
   let expP = 0, expR = 0;
-  data.categories.forEach(c => { expP += +c.planned || 0; expR += +c.real || 0; });
+  data.categories.forEach(cat => {
+    const t = catTotals(cat);
+    expP += t.planned; expR += t.real;
+  });
 
   const remP = totalP - expP;
   const remR = totalR - expR;
@@ -146,75 +185,138 @@ function recalc() {
   remREl.className = 'scard-value' + (remR < 0 ? ' over' : remR > 0 ? ' under' : '');
   setText('s-rem-real-sub', remR < 0 ? 'over budget' : 'unallocated');
 
-  // Category rows
   renderCatRows(data, rHP, rLP, rHR, rLR);
-
-  // Split section
   renderSplitSection(data, rHP, rLP, rHR, rLR);
-
   saveState();
 }
 
-function setText(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = val;
-}
+// ─── Category rows ────────────────────────────────────────────────────────────
 
 function renderCatRows(data, rHP, rLP, rHR, rLR) {
   const container = document.getElementById('cat-rows');
   container.innerHTML = '';
 
-  data.categories.forEach((cat, idx) => {
-    const planned = +cat.planned || 0;
-    const real    = +cat.real    || 0;
-    const diff    = real - planned;
+  data.categories.forEach((cat, cIdx) => {
+    const totals  = catTotals(cat);
+    const diff    = totals.real - totals.planned;
+    const diffCls = diff === 0 ? 'neutral' : diff > 0 ? 'negative' : 'positive';
+    const diffLbl = diff === 0 ? '—' : (diff > 0 ? '+' : '') + fmt(diff);
 
-    const row = document.createElement('div');
-    row.className = 'cat-row';
+    // ── Parent row ──
+    const parent = document.createElement('div');
+    parent.className = 'cat-group';
 
-    const diffClass = diff === 0 ? 'neutral' : diff > 0 ? 'negative' : 'positive';
-    const diffLabel = diff === 0 ? '—' : (diff > 0 ? '+' : '') + fmt(diff);
+    const chevron = cat.collapsed ? '▶' : '▼';
 
-    const hPlanned = fmt(planned * rHP);
-    const lPlanned = fmt(planned * rLP);
-    const hReal    = fmt(real * rHR);
-    const lReal    = fmt(real * rLR);
-
-    row.innerHTML = `
-      <div class="cat-name">
-        <span class="cat-emoji">${cat.emoji}</span>
-        <span>${cat.name}</span>
+    parent.innerHTML = `
+      <div class="cat-parent-row" data-cidx="${cIdx}">
+        <div class="cat-parent-left">
+          <button class="btn-chevron" data-toggle="${cIdx}">${chevron}</button>
+          <span class="cat-emoji">${cat.emoji}</span>
+          <span class="cat-parent-name">${cat.name}</span>
+        </div>
+        <span class="cat-parent-total">${fmt(totals.planned)}</span>
+        <span class="cat-parent-total">${fmt(totals.real)}</span>
+        <span class="diff-pill ${diffCls}">${diffLbl}</span>
+        <span class="split-display-cell">
+          <span class="henry-share">H: ${fmt(totals.real * rHR)}</span>
+          · <span class="lauri-share">L: ${fmt(totals.real * rLR)}</span>
+        </span>
+        <button class="btn-icon btn-del-cat" data-del-cat="${cIdx}" title="Delete category">✕</button>
       </div>
-      <input type="number" class="cat-input" data-idx="${idx}" data-field="planned" value="${cat.planned || ''}" placeholder="0" min="0" step="10" />
-      <input type="number" class="cat-input" data-idx="${idx}" data-field="real"    value="${cat.real    || ''}" placeholder="0" min="0" step="10" />
-      <span class="diff-pill ${diffClass}">${diffLabel}</span>
-      <span class="split-display-cell">
-        <span class="henry-share">H: ${hReal}</span> · <span class="lauri-share">L: ${lReal}</span>
-      </span>
-      <button class="btn-icon" data-del="${idx}" title="Remove">✕</button>
     `;
-    container.appendChild(row);
+
+    // ── Subcategory block ──
+    const subsWrap = document.createElement('div');
+    subsWrap.className = 'subs-wrap' + (cat.collapsed ? ' collapsed' : '');
+
+    (cat.subs || []).forEach((sub, sIdx) => {
+      const sDiff    = (+sub.real || 0) - (+sub.planned || 0);
+      const sDiffCls = sDiff === 0 ? 'neutral' : sDiff > 0 ? 'negative' : 'positive';
+      const sDiffLbl = sDiff === 0 ? '—' : (sDiff > 0 ? '+' : '') + fmt(sDiff);
+
+      const subRow = document.createElement('div');
+      subRow.className = 'cat-sub-row';
+      subRow.innerHTML = `
+        <div class="sub-name-cell">
+          <span class="sub-indent">└</span>
+          <span class="sub-name-text">${sub.name}</span>
+        </div>
+        <input type="number" class="sub-input" data-cidx="${cIdx}" data-sidx="${sIdx}" data-field="planned"
+          value="${sub.planned || ''}" placeholder="0" min="0" step="10" />
+        <input type="number" class="sub-input" data-cidx="${cIdx}" data-sidx="${sIdx}" data-field="real"
+          value="${sub.real || ''}" placeholder="0" min="0" step="10" />
+        <span class="diff-pill ${sDiffCls}">${sDiffLbl}</span>
+        <span class="split-display-cell">
+          <span class="henry-share">H: ${fmt((+sub.real || 0) * rHR)}</span>
+          · <span class="lauri-share">L: ${fmt((+sub.real || 0) * rLR)}</span>
+        </span>
+        <button class="btn-icon btn-del-sub" data-cidx="${cIdx}" data-sidx="${sIdx}" title="Remove">✕</button>
+      `;
+      subsWrap.appendChild(subRow);
+    });
+
+    // Add subcategory button
+    const addSubRow = document.createElement('div');
+    addSubRow.className = 'add-sub-row';
+    addSubRow.innerHTML = `
+      <button class="btn-add-sub" data-cidx="${cIdx}">+ Add item</button>
+    `;
+    subsWrap.appendChild(addSubRow);
+    parent.appendChild(subsWrap);
+    container.appendChild(parent);
   });
 
-  // Bind inputs
-  container.querySelectorAll('.cat-input').forEach(input => {
-    input.addEventListener('change', e => {
-      const idx   = +e.target.dataset.idx;
-      const field = e.target.dataset.field;
-      data.categories[idx][field] = +e.target.value || 0;
+  // ── Event binding ──
+
+  // Toggle collapse
+  container.querySelectorAll('[data-toggle]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const cIdx = +e.currentTarget.dataset.toggle;
+      data.categories[cIdx].collapsed = !data.categories[cIdx].collapsed;
       recalc();
     });
   });
 
-  // Bind delete buttons
-  container.querySelectorAll('[data-del]').forEach(btn => {
-    btn.addEventListener('click', e => {
-      const idx = +e.currentTarget.dataset.del;
-      data.categories.splice(idx, 1);
+  // Sub inputs
+  container.querySelectorAll('.sub-input').forEach(input => {
+    input.addEventListener('change', e => {
+      const { cidx, sidx, field } = e.target.dataset;
+      data.categories[+cidx].subs[+sidx][field] = +e.target.value || 0;
       recalc();
+    });
+  });
+
+  // Delete subcategory
+  container.querySelectorAll('.btn-del-sub').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const { cidx, sidx } = e.currentTarget.dataset;
+      data.categories[+cidx].subs.splice(+sidx, 1);
+      recalc();
+    });
+  });
+
+  // Delete parent category
+  container.querySelectorAll('.btn-del-cat').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const idx = +e.currentTarget.dataset.delCat;
+      if (confirm(`Delete "${data.categories[idx].name}" and all its items?`)) {
+        data.categories.splice(idx, 1);
+        recalc();
+      }
+    });
+  });
+
+  // Add subcategory — inline
+  container.querySelectorAll('.btn-add-sub').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const cIdx = +e.currentTarget.dataset.cidx;
+      openSubModal(cIdx);
     });
   });
 }
+
+// ─── Split section ────────────────────────────────────────────────────────────
 
 function renderSplitSection(data, rHP, rLP, rHR, rLR) {
   const hRows = document.getElementById('henry-split-rows');
@@ -225,10 +327,9 @@ function renderSplitSection(data, rHP, rLP, rHR, rLR) {
   let hTotalP = 0, hTotalR = 0, lTotalP = 0, lTotalR = 0;
 
   data.categories.forEach(cat => {
-    const planned = +cat.planned || 0;
-    const real    = +cat.real    || 0;
-    const hP = planned * rHP, hR = real * rHR;
-    const lP = planned * rLP, lR = real * rLR;
+    const t = catTotals(cat);
+    const hP = t.planned * rHP, hR = t.real * rHR;
+    const lP = t.planned * rLP, lR = t.real * rLR;
     hTotalP += hP; hTotalR += hR;
     lTotalP += lP; lTotalR += lR;
 
@@ -256,14 +357,30 @@ function renderSplitSection(data, rHP, rLP, rHR, rLR) {
     `<span>Total</span><span>${fmt(lTotalP)} → ${fmt(lTotalR)}</span>`;
 }
 
-// ─── Add category modal ───────────────────────────────────────────────────────
+// ─── Modals ───────────────────────────────────────────────────────────────────
 
 let selectedIcon = '🧾';
+let modalMode    = 'category'; // 'category' | 'sub'
+let modalCatIdx  = null;
 
-function openModal() {
+function openCatModal() {
+  modalMode = 'category';
   selectedIcon = '🧾';
   document.getElementById('new-cat-name').value = '';
+  document.getElementById('modal-icon-row').style.display = '';
+  document.getElementById('modal-title').textContent = 'New category';
   buildIconPicker();
+  document.getElementById('modal-backdrop').style.display = 'flex';
+  setTimeout(() => document.getElementById('new-cat-name').focus(), 50);
+}
+
+function openSubModal(cIdx) {
+  modalMode   = 'sub';
+  modalCatIdx = cIdx;
+  document.getElementById('new-cat-name').value = '';
+  document.getElementById('modal-icon-row').style.display = 'none';
+  const data = getMonthData(state.activeMonth);
+  document.getElementById('modal-title').textContent = `Add item to "${data.categories[cIdx].name}"`;
   document.getElementById('modal-backdrop').style.display = 'flex';
   setTimeout(() => document.getElementById('new-cat-name').focus(), 50);
 }
@@ -289,11 +406,23 @@ function buildIconPicker() {
   });
 }
 
-function confirmAddCategory() {
+function confirmModal() {
   const name = document.getElementById('new-cat-name').value.trim();
   if (!name) { document.getElementById('new-cat-name').focus(); return; }
   const data = getMonthData(state.activeMonth);
-  data.categories.push({ id: uid(), emoji: selectedIcon, name, planned: 0, real: 0 });
+
+  if (modalMode === 'category') {
+    data.categories.push({
+      id: uid(), emoji: selectedIcon, name, collapsed: false,
+      subs: []
+    });
+  } else {
+    data.categories[modalCatIdx].subs.push({
+      id: uid(), name, planned: 0, real: 0
+    });
+    data.categories[modalCatIdx].collapsed = false;
+  }
+
   closeModal();
   recalc();
 }
@@ -318,7 +447,6 @@ function bindIncomeInputs() {
 function init() {
   loadState();
 
-  // Ensure current month exists
   const cur = currentMonthKey();
   if (!state.activeMonth || !state.months[state.activeMonth]) {
     state.activeMonth = cur;
@@ -328,21 +456,16 @@ function init() {
   refreshMonthPicker();
   bindIncomeInputs();
 
-  // Month picker change
   document.getElementById('month-select').addEventListener('change', e => {
     state.activeMonth = e.target.value;
     render();
   });
 
-  // New month button
   document.getElementById('btn-new-month').addEventListener('click', () => {
-    // Find next month after the latest
     const keys = Object.keys(state.months).sort();
     const last = keys[keys.length - 1] || currentMonthKey();
     const [y, m] = last.split('-').map(Number);
-    const next = m === 12
-      ? `${y + 1}-01`
-      : `${y}-${String(m + 1).padStart(2, '0')}`;
+    const next = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`;
     getMonthData(next);
     state.activeMonth = next;
     saveState();
@@ -350,15 +473,14 @@ function init() {
     render();
   });
 
-  // Add category
-  document.getElementById('btn-add-cat').addEventListener('click', openModal);
+  document.getElementById('btn-add-cat').addEventListener('click', openCatModal);
   document.getElementById('modal-cancel').addEventListener('click', closeModal);
-  document.getElementById('modal-confirm').addEventListener('click', confirmAddCategory);
+  document.getElementById('modal-confirm').addEventListener('click', confirmModal);
   document.getElementById('modal-backdrop').addEventListener('click', e => {
     if (e.target === e.currentTarget) closeModal();
   });
   document.getElementById('new-cat-name').addEventListener('keydown', e => {
-    if (e.key === 'Enter') confirmAddCategory();
+    if (e.key === 'Enter') confirmModal();
     if (e.key === 'Escape') closeModal();
   });
 
