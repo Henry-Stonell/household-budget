@@ -347,11 +347,12 @@ function renderCatRows(data, rH, rL) {
       subsWrap.appendChild(subRow);
     });
 
-    const addSubRow = document.createElement('div');
-    addSubRow.className = 'add-sub-row';
-    addSubRow.innerHTML = `<button class="btn-add-sub" data-cidx="${cIdx}">+ Add item</button>`;
-    subsWrap.appendChild(addSubRow);
     parent.appendChild(subsWrap);
+    // "+ Add item" sits outside the collapsible wrap so it's always clickable
+    const addSubRow = document.createElement('div');
+    addSubRow.className = 'add-sub-row-outer';
+    addSubRow.innerHTML = `<button class="btn-add-sub" data-cidx="${cIdx}">+ Add item</button>`;
+    parent.appendChild(addSubRow);
     container.appendChild(parent);
   });
 
@@ -418,9 +419,7 @@ function renderCatRows(data, rH, rL) {
     });
   });
 
-  container.querySelectorAll('.btn-add-sub').forEach(btn => {
-    btn.addEventListener('click', e => openSubModal(+e.currentTarget.dataset.cidx));
-  });
+  // btn-add-sub clicks handled by delegated listener in init()
 }
 
 // ─── Personal budgets ─────────────────────────────────────────────────────────
@@ -526,9 +525,8 @@ function renderPersonalSection(person, data, disposable, spent) {
     });
   });
 
-  container.querySelector('.personal-add-row .btn-add-sub').addEventListener('click', () => {
-    openPersonalSubModal(person);
-  });
+  const addBtn = container.querySelector('.personal-add-row .btn-add-sub[data-person]');
+  if (addBtn) addBtn.addEventListener('click', () => openPersonalSubModal(person));
 }
 
 function calcSharedSpend(data, person) {
@@ -684,6 +682,13 @@ async function init() {
   document.getElementById('modal-confirm').addEventListener('click',confirmModal);
   document.getElementById('modal-backdrop').addEventListener('click',e=>{ if(e.target===e.currentTarget)closeModal(); });
   document.getElementById('new-cat-name').addEventListener('keydown',e=>{ if(e.key==='Enter')confirmModal(); if(e.key==='Escape')closeModal(); });
+
+  // Delegated: "+ Add item" buttons inside category rows (survives re-renders)
+  document.getElementById('cat-rows').addEventListener('click', e => {
+    const btn = e.target.closest('.btn-add-sub[data-cidx]');
+    if (btn) openSubModal(+btn.dataset.cidx);
+  });
+
   render();
 }
 
