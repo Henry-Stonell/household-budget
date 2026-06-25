@@ -404,15 +404,15 @@ input[type="range"].split-slider:focus { box-shadow: none; border-color: transpa
   background: var(--bg);
 }
 
-/* Adjust cat-table-head for split column */
+/* Adjust cat-table-head for split + payer columns */
 .cat-table-head {
-  grid-template-columns: 2fr 90px 120px 110px 220px 36px;
+  grid-template-columns: 2fr 90px 120px 110px 200px 110px 36px;
 }
 .cat-parent-row {
-  grid-template-columns: 2fr 90px 120px 110px 220px 36px;
+  grid-template-columns: 2fr 90px 120px 110px 200px 110px 36px;
 }
 .cat-sub-row {
-  grid-template-columns: 2fr 90px 120px 110px 220px 36px;
+  grid-template-columns: 2fr 90px 120px 110px 200px 110px 36px;
 }
 
 @media (max-width: 960px) {
@@ -422,6 +422,7 @@ input[type="range"].split-slider:focus { box-shadow: none; border-color: transpa
   .cat-table-head > *:nth-child(n+4),
   .cat-parent-row > *:nth-child(n+4),
   .cat-sub-row > *:nth-child(n+4) { display: none; }
+  .payer-select { display: none; }
   .personal-grid { grid-template-columns: 1fr; }
   .split-grid { grid-template-columns: 1fr; }
   .personal-header { flex-direction: column; align-items: flex-start; }
@@ -511,3 +512,85 @@ input[type="range"].split-slider:focus { box-shadow: none; border-color: transpa
   .chart-card--wide { grid-column: 1; }
   .disp-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Payer select ─────────────────────────────────────────────────── */
+.payer-select {
+  font-size: 12px;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  width: 100%;
+}
+.payer-select:focus { border-color: var(--henry); }
+.payer-select option[value="henry"] { color: var(--henry); }
+.payer-select option[value="lauri"] { color: var(--lauri); }
+
+/* ── Transfers section ────────────────────────────────────────────── */
+.transfers-wrap {
+  margin-bottom: 2rem;
+}
+.transfers-wrap h2 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+
+.transfer-balanced {
+  background: var(--lauri-light);
+  color: var(--lauri);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 0.75rem;
+}
+
+.transfer-row {
+  background: var(--surface);
+  border: 2px solid var(--henry);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+.transfer-arrow {
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.transfer-amount {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.transfer-reason {
+  font-size: 13px;
+  color: var(--text-muted);
+  flex: 1;
+}
+
+.transfer-detail {
+  background: var(--bg);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1.25rem;
+  margin-top: 0.5rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+.transfer-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px 6px 0;
+  border-bottom: 0.5px solid var(--border);
+  font-size: 13px;
+}
+.transfer-detail-row:nth-child(2n) {
+  padding-left: 12px;
+  border-left: 0.5px solid var(--border);
+}
+.transfer-detail-row:nth-last-child(-n+2) { border-bottom: none; }

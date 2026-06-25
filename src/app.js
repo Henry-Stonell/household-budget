@@ -47,7 +47,7 @@ function defaultCategories(ruleId) {
   const b0  = RULES[ruleId].buckets[0].id;
   const bSav = RULES[ruleId].buckets.find(b=>b.id==='savings')?.id || b0;
   const needs = ruleId==='envelope'?'housing': ruleId==='70-20-10'?'living': ruleId==='zero'?'all':'needs';
-  const mk = (name, splitH=null, splitL=null) => ({ id:uid(), name, real:0, splitH, splitL });
+  const mk = (name, splitH=null, splitL=null) => ({ id:uid(), name, real:0, splitH, splitL, payer:null });
   return [
     { id:'housing',   emoji:'🏠', name:'Housing',           collapsed:true, bucket:ruleId==='envelope'?'housing':needs,
       subs:[mk('Rent / mortgage')] },
@@ -85,6 +85,7 @@ function migrateState(s) {
       if (cat.collapsed===undefined) cat.collapsed=true;
       (cat.subs||[]).forEach(sub => {
         if (sub.splitH===undefined) { sub.splitH=null; sub.splitL=null; }
+        if (sub.payer===undefined) sub.payer=null;
       });
     });
     if (!s.budget.personal) s.budget.personal = {
@@ -169,6 +170,29 @@ function calcTotals() {
   const henryTotal = henryShared + henryPersonal;
   const lauriTotal = lauriShared + lauriPersonal;
 
+  // Payment account tracking — who physically pays each sub
+  let henryPaid=0, lauriPaid=0;
+  data.categories.forEach(cat=>{
+    (cat.subs||[]).forEach(sub=>{
+      const real=+sub.real||0;
+      if(sub.payer==='henry') henryPaid+=real;
+      else if(sub.payer==='lauri') lauriPaid+=real;
+      else {
+        // No payer set — assume paid proportionally (no transfer needed)
+        const a=subAmounts(sub,rH,rL);
+        henryPaid+=a.henry; lauriPaid+=a.lauri;
+      }
+    });
+  });
+  // Henry owes: his share of all shared costs
+  // Henry paid: what came out of his account
+  // If Henry paid more than he owes → Lauri transfers to Henry
+  // If Henry paid less than he owes → Henry transfers to Lauri
+  const henryOwed = henryShared; // his cost share
+  const lauriOwed = lauriShared; // her cost share
+  const henryNet = henryPaid - henryOwed; // positive = overpaid, Lauri owes Henry
+  const lauriNet = lauriPaid - lauriOwed; // positive = overpaid, Henry owes Lauri
+
   // Disposable = income − total spent (shared share + all personal)
   const henryDisposable = henry - henryTotal;
   const lauriDisposable = lauri - lauriTotal;
@@ -177,7 +201,8 @@ function calcTotals() {
            henryShared, lauriShared, totalShared,
            henryPersonal, lauriPersonal,
            henryTotal, lauriTotal,
-           henryDisposable, lauriDisposable };
+           henryDisposable, lauriDisposable,
+           henryPaid, lauriPaid, henryOwed, lauriOwed, henryNet, lauriNet };
 }
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
@@ -294,6 +319,7 @@ function recalc() {
   renderPersonalBudgets(t);
   renderDisposable(t);
   renderSplitSection(t);
+  renderTransfers(t);
   if (state.activeTab==='charts') renderCharts(t);
   saveState();
 }
@@ -359,6 +385,11 @@ function renderCatRows(data, rH, rL) {
           </div>
           <span class="lauri-share split-label">L: ${fmt(lAmt)}</span>
         </div>
+        <select class="payer-select" data-cidx="${cIdx}" data-sidx="${sIdx}" title="Whose account pays this in full?">
+          <option value="">Split</option>
+          <option value="henry" ${sub.payer==='henry'?'selected':''}>Henry pays</option>
+          <option value="lauri" ${sub.payer==='lauri'?'selected':''}>Lauri pays</option>
+        </select>
         <button class="btn-icon btn-del-sub" data-cidx="${cIdx}" data-sidx="${sIdx}" title="Remove">✕</button>`;
       subsWrap.appendChild(subRow);
     });
@@ -422,6 +453,13 @@ function renderCatRows(data, rH, rL) {
       if(confirm(`Delete "${data.categories[idx].name}" and all its items?`)){
         data.categories.splice(idx,1); recalc();
       }
+    });
+  });
+  container.querySelectorAll('.payer-select').forEach(sel=>{
+    sel.addEventListener('change',e=>{
+      const {cidx,sidx}=e.target.dataset;
+      data.categories[+cidx].subs[+sidx].payer=e.target.value||null;
+      recalc();
     });
   });
 }
@@ -520,6 +558,62 @@ function renderSplitSection(t) {
     <span>Remaining</span><span class="${hDisp<0?'over':''}">${fmt(hDisp)}</span>`;
   document.getElementById('lauri-remaining-row').innerHTML=`
     <span>Remaining</span><span class="${lDisp<0?'over':''}">${fmt(lDisp)}</span>`;
+}
+
+
+// ─── Transfers ────────────────────────────────────────────────────────────────
+
+function renderTransfers(t) {
+  const el = document.getElementById('transfers-section');
+  if (!el) return;
+
+  // henryNet > 0 means Henry overpaid → Lauri owes Henry
+  // henryNet < 0 means Henry underpaid → Henry owes Lauri
+  const amount = Math.abs(Math.round(t.henryNet));
+  const noTransfer = amount < 1;
+
+  let html = '';
+  if (noTransfer) {
+    html = `<div class="transfer-balanced">✓ No transfers needed — payments are balanced</div>`;
+  } else if (t.henryNet > 0) {
+    // Henry overpaid shared costs → Lauri owes Henry
+    html = `
+      <div class="transfer-row">
+        <div class="transfer-arrow lauri-color-text">Lauri → Henry</div>
+        <div class="transfer-amount henry-color-text">${fmt(amount)}</div>
+        <div class="transfer-reason">Lauri's share of shared costs paid by Henry's account</div>
+      </div>`;
+  } else {
+    // Lauri overpaid → Henry owes Lauri
+    html = `
+      <div class="transfer-row">
+        <div class="transfer-arrow henry-color-text">Henry → Lauri</div>
+        <div class="transfer-amount lauri-color-text">${fmt(amount)}</div>
+        <div class="transfer-reason">Henry's share of shared costs paid by Lauri's account</div>
+      </div>`;
+  }
+
+  // Detail breakdown
+  html += `<div class="transfer-detail">
+    <div class="transfer-detail-row">
+      <span class="henry-color-text">Henry paid from account</span>
+      <span>${fmt(Math.round(t.henryPaid))}</span>
+    </div>
+    <div class="transfer-detail-row">
+      <span class="henry-color-text">Henry's actual share</span>
+      <span>${fmt(Math.round(t.henryOwed))}</span>
+    </div>
+    <div class="transfer-detail-row">
+      <span class="lauri-color-text">Lauri paid from account</span>
+      <span>${fmt(Math.round(t.lauriPaid))}</span>
+    </div>
+    <div class="transfer-detail-row">
+      <span class="lauri-color-text">Lauri's actual share</span>
+      <span>${fmt(Math.round(t.lauriOwed))}</span>
+    </div>
+  </div>`;
+
+  el.innerHTML = html;
 }
 
 // ─── Charts ───────────────────────────────────────────────────────────────────
@@ -836,7 +930,7 @@ function confirmModal() {
     const bucket=(bucketEl&&bucketEl.options.length>0)?bucketEl.value:RULES[state.activeRule].buckets[0].id;
     data.categories.push({id:uid(),emoji:selectedIcon,name,collapsed:true,bucket,subs:[]});
   } else if(modalMode==='sub'){
-    data.categories[modalCatIdx].subs.push({id:uid(),name,real:0,splitH:null,splitL:null});
+    data.categories[modalCatIdx].subs.push({id:uid(),name,real:0,splitH:null,splitL:null,payer:null});
     data.categories[modalCatIdx].collapsed=false;
   } else if(modalMode==='personal'){
     data.personal[modalPerson].subs.push({id:uid(),name,real:0});
