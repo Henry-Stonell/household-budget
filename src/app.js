@@ -62,12 +62,12 @@ function defaultCategories(ruleId) {
 
   return [
     {
-      id: 'housing', emoji: '🏠', name: 'Housing', collapsed: false,
+      id: 'housing', emoji: '🏠', name: 'Housing', collapsed: true,
       bucket: ruleId === 'envelope' ? 'housing' : needsBucket,
       subs: [{ id: uid(), name: 'Rent / mortgage', real: 0 }]
     },
     {
-      id: 'groceries', emoji: '🛒', name: 'Groceries & food', collapsed: false,
+      id: 'groceries', emoji: '🛒', name: 'Groceries & food', collapsed: true,
       bucket: ruleId === 'envelope' ? 'food' : needsBucket,
       subs: [
         { id: uid(), name: 'Supermarket', real: 0 },
@@ -75,7 +75,7 @@ function defaultCategories(ruleId) {
       ]
     },
     {
-      id: 'transport', emoji: '🚗', name: 'Transport', collapsed: false,
+      id: 'transport', emoji: '🚗', name: 'Transport', collapsed: true,
       bucket: ruleId === 'envelope' ? 'transport' : needsBucket,
       subs: [
         { id: uid(), name: 'Car payment', real: 0 },
@@ -84,7 +84,7 @@ function defaultCategories(ruleId) {
       ]
     },
     {
-      id: 'utilities', emoji: '⚡', name: 'Utilities & bills', collapsed: false,
+      id: 'utilities', emoji: '⚡', name: 'Utilities & bills', collapsed: true,
       bucket: ruleId === 'envelope' ? 'other' : needsBucket,
       subs: [
         { id: uid(), name: 'Electricity', real: 0 },
@@ -93,7 +93,7 @@ function defaultCategories(ruleId) {
       ]
     },
     {
-      id: 'savings', emoji: '💰', name: 'Savings', collapsed: false,
+      id: 'savings', emoji: '💰', name: 'Savings', collapsed: true,
       bucket: ruleId === 'envelope' ? 'savings' : bSav,
       subs: [
         { id: uid(), name: 'Emergency fund', real: 0 },
@@ -101,7 +101,7 @@ function defaultCategories(ruleId) {
       ]
     },
     {
-      id: 'kids', emoji: '👶', name: 'Kids & family', collapsed: false,
+      id: 'kids', emoji: '👶', name: 'Kids & family', collapsed: true,
       bucket: ruleId === 'envelope' ? 'other' : needsBucket,
       subs: [
         { id: uid(), name: 'Childcare', real: 0 },
@@ -127,7 +127,17 @@ function saveState() { localStorage.setItem('hl-budget', JSON.stringify(state));
 
 function loadState() {
   const raw = localStorage.getItem('hl-budget');
-  if (raw) { try { state = JSON.parse(raw); } catch {} }
+  if (raw) {
+    try {
+      state = JSON.parse(raw);
+      // Migrate: ensure all categories default to collapsed
+      Object.values(state.months || {}).forEach(month => {
+        (month.categories || []).forEach(cat => {
+          if (cat.collapsed === undefined) cat.collapsed = true;
+        });
+      });
+    } catch {}
+  }
 }
 
 function getMonthData(key) {
@@ -475,8 +485,11 @@ function confirmModal() {
   const data = getMonthData(state.activeMonth);
 
   if (modalMode === 'category') {
-    const bucket = document.getElementById('modal-bucket').value;
-    data.categories.push({ id: uid(), emoji: selectedIcon, name, collapsed: false, bucket, subs: [] });
+    const bucketEl = document.getElementById('modal-bucket');
+    const bucket = (bucketEl && bucketEl.options.length > 0)
+      ? bucketEl.value
+      : RULES[state.activeRule].buckets[0].id;
+    data.categories.push({ id: uid(), emoji: selectedIcon, name, collapsed: true, bucket, subs: [] });
   } else {
     data.categories[modalCatIdx].subs.push({ id: uid(), name, real: 0 });
     data.categories[modalCatIdx].collapsed = false;
