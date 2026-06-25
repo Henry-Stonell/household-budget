@@ -503,7 +503,8 @@ input[type="range"].split-slider:focus { box-shadow: none; border-color: transpa
 }
 .chart-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 1rem; color: var(--text-muted); }
 .chart-card--wide { grid-column: 1 / -1; }
-.chart-wrap { height: 260px; position: relative; }
+.chart-wrap { height: 260px; position: relative; width: 100%; }
+.chart-wrap canvas { display: block; }
 
 @media (max-width: 700px) {
   .charts-grid { grid-template-columns: 1fr; }

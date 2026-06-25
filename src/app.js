@@ -534,6 +534,17 @@ function destroyCharts() {
 function renderCharts(t) {
   destroyCharts();
 
+  // Ensure canvases have explicit pixel dimensions (needed when tab was hidden)
+  ['chart-breakdown','chart-income-spend','chart-buckets'].forEach(id=>{
+    const wrap=document.getElementById(id)?.parentElement;
+    const el=document.getElementById(id);
+    if(wrap&&el){ el.width=wrap.offsetWidth||600; el.height=wrap.offsetHeight||260; }
+  });
+
+  const isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const textColor=isDark?'#aaa':'#555';
+  const gridColor=isDark?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.07)';
+
   // 1. Spending breakdown donut
   const catLabels=t.data.categories.map(c=>c.name);
   const catValues=t.data.categories.map(c=>catTotal(c));
@@ -553,7 +564,7 @@ function renderCharts(t) {
       },
       options:{
         responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{ position:'right', labels:{color:'#aaa',boxWidth:12} } }
+        plugins:{ legend:{ position:'right', labels:{color:textColor,boxWidth:12,padding:12} } }
       }
     });
   }
@@ -574,14 +585,24 @@ function renderCharts(t) {
       },
       options:{
         responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{ labels:{color:'#aaa'} } },
+        plugins:{ legend:{ labels:{color:textColor} } },
         scales:{
-          x:{ ticks:{color:'#aaa'}, grid:{color:'#ffffff11'} },
-          y:{ ticks:{color:'#aaa', callback:v=>'€'+v.toLocaleString()}, grid:{color:'#ffffff11'} }
+          x:{ ticks:{color:textColor}, grid:{color:gridColor} },
+          y:{ ticks:{color:textColor, callback:v=>'€'+Math.round(v).toLocaleString('de-DE')}, grid:{color:gridColor} }
         }
       }
     });
   }
+
+  // Resize observer — redraw charts when window resizes
+  if(window._chartResizeObserver) window._chartResizeObserver.disconnect();
+  window._chartResizeObserver = new ResizeObserver(()=>{
+    if(state.activeTab==='charts') {
+      requestAnimationFrame(()=>renderCharts(calcTotals()));
+    }
+  });
+  const firstChart=document.getElementById('chart-breakdown');
+  if(firstChart) window._chartResizeObserver.observe(firstChart.parentElement);
 
   // 3. Budget rule bucket bar
   const rule=RULES[state.activeRule];
@@ -604,10 +625,10 @@ function renderCharts(t) {
       },
       options:{
         responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{ labels:{color:'#aaa'} } },
+        plugins:{ legend:{ labels:{color:textColor} } },
         scales:{
-          x:{ ticks:{color:'#aaa'}, grid:{color:'#ffffff11'} },
-          y:{ ticks:{color:'#aaa', callback:v=>'€'+v.toLocaleString()}, grid:{color:'#ffffff11'} }
+          x:{ ticks:{color:textColor}, grid:{color:gridColor} },
+          y:{ ticks:{color:textColor, callback:v=>'€'+Math.round(v).toLocaleString('de-DE')}, grid:{color:gridColor} }
         }
       }
     });
@@ -848,7 +869,7 @@ async function init() {
     btn.addEventListener('click',()=>{
       state.activeTab=btn.dataset.tab;
       renderTabs();
-      if(state.activeTab==='charts') renderCharts(calcTotals());
+      if(state.activeTab==='charts') requestAnimationFrame(()=>requestAnimationFrame(()=>renderCharts(calcTotals())));
     });
   });
 
