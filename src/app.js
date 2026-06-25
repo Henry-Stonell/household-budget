@@ -425,19 +425,10 @@ function renderCatRows(data, rH, rL) {
 // ─── Personal budgets ─────────────────────────────────────────────────────────
 
 function renderPersonalBudgets(data, henryIncome, lauriIncome, henrySharedSpend, lauriSharedSpend) {
-  const total = henryIncome + lauriIncome;
-
-  // Savings bucket amount to exclude from personal spending money
-  const rule = RULES[state.activeRule];
-  const savBucket = rule.buckets.find(b=>b.id==='savings');
-  const totalSavings = savBucket ? Math.round(total * savBucket.pct / 100) : 0;
-  const rH = total>0 ? henryIncome/total : 0.5;
-  const rL = total>0 ? lauriIncome/total : 0.5;
-  const henrySavings = totalSavings * rH;
-  const lauriSavings = totalSavings * rL;
-
-  const henryDisposable = Math.max(0, henryIncome - henrySharedSpend - henrySavings);
-  const lauriDisposable = Math.max(0, lauriIncome - lauriSharedSpend - lauriSavings);
+  // Disposable = your income minus your actual share of shared expenses already entered.
+  // Nothing is pre-deducted — savings show up here once you enter real savings amounts.
+  const henryDisposable = Math.max(0, henryIncome - henrySharedSpend);
+  const lauriDisposable = Math.max(0, lauriIncome - lauriSharedSpend);
 
   const henryPersonalSpend = (data.personal?.henry?.subs||[]).reduce((s,sub)=>s+(+sub.real||0),0);
   const lauriPersonalSpend = (data.personal?.lauri?.subs||[]).reduce((s,sub)=>s+(+sub.real||0),0);
