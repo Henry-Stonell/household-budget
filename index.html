@@ -9,6 +9,30 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 </head>
 <body>
+  <!-- Password gate -->
+  <script>
+    (function() {
+      const KEY = 'hl-auth';
+      const HASH = '4a7f23de78fbaa9579f7a21993ece27116293c727ba28ece00229fe375bcd011'; // SHA of password
+      async function sha256(msg) {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
+        return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+      }
+      async function checkAuth() {
+        if (sessionStorage.getItem(KEY) === '1') return;
+        const pwd = prompt('Enter password to access H&L Budget:');
+        if (!pwd) { document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:system-ui;color:#888">Access denied.</div>'; return; }
+        const hash = await sha256(pwd.trim());
+        if (hash === HASH) {
+          sessionStorage.setItem(KEY, '1');
+        } else {
+          document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:system-ui;color:#888">Wrong password. Refresh to try again.</div>';
+        }
+      }
+      checkAuth();
+    })();
+  </script>
+
   <div class="app">
 
     <header class="app-header">
