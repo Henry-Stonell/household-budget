@@ -13,7 +13,7 @@
   <script>
     (function() {
       const KEY = 'hl-auth';
-      const HASH = '4a7f23de78fbaa9579f7a21993ece27116293c727ba28ece00229fe375bcd011'; // SHA of password
+      const HASH = 'c2e2c5808a13e331d6cd095f01142ea1632c68e241760d3093243154a6ffb383'; // SHA of password
       async function sha256(msg) {
         const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
         return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
