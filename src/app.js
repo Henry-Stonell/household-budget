@@ -49,17 +49,17 @@ function defaultCategories(ruleId) {
   const needs = ruleId==='envelope'?'housing': ruleId==='70-20-10'?'living': ruleId==='zero'?'all':'needs';
   const mk = (name, splitH=null, splitL=null) => ({ id:uid(), name, real:0, splitH, splitL, payer:null });
   return [
-    { id:'housing',   emoji:'🏠', name:'Housing',           collapsed:true, bucket:ruleId==='envelope'?'housing':needs,
+    { id:'housing',   emoji:'🏠', name:'Housing', plan:{period:'monthly',items:[]},           collapsed:true, bucket:ruleId==='envelope'?'housing':needs,
       subs:[mk('Rent / mortgage')] },
-    { id:'groceries', emoji:'🛒', name:'Groceries & food',  collapsed:true, bucket:ruleId==='envelope'?'food':needs,
+    { id:'groceries', emoji:'🛒', name:'Groceries & food', plan:{period:'weekly',items:[]},  collapsed:true, bucket:ruleId==='envelope'?'food':needs,
       subs:[mk('Supermarket'), mk('Takeaway & dining')] },
-    { id:'transport', emoji:'🚗', name:'Transport',         collapsed:true, bucket:ruleId==='envelope'?'transport':needs,
+    { id:'transport', emoji:'🚗', name:'Transport', plan:{period:'monthly',items:[]},         collapsed:true, bucket:ruleId==='envelope'?'transport':needs,
       subs:[mk('Car payment'), mk('Fuel'), mk('Public transport')] },
-    { id:'utilities', emoji:'⚡', name:'Utilities & bills', collapsed:true, bucket:ruleId==='envelope'?'other':needs,
+    { id:'utilities', emoji:'⚡', name:'Utilities & bills', plan:{period:'monthly',items:[]}, collapsed:true, bucket:ruleId==='envelope'?'other':needs,
       subs:[mk('Electricity'), mk('Internet'), mk('Phone')] },
-    { id:'savings',   emoji:'💰', name:'Savings',           collapsed:true, bucket:ruleId==='envelope'?'savings':bSav,
+    { id:'savings',   emoji:'💰', name:'Savings', plan:{period:'monthly',items:[]},           collapsed:true, bucket:ruleId==='envelope'?'savings':bSav,
       subs:[mk('Emergency fund'), mk('Investments')] },
-    { id:'kids',      emoji:'👶', name:'Kids & family',     collapsed:true, bucket:ruleId==='envelope'?'other':needs,
+    { id:'kids',      emoji:'👶', name:'Kids & family', plan:{period:'monthly',items:[]},     collapsed:true, bucket:ruleId==='envelope'?'other':needs,
       subs:[mk('Childcare'), mk('Activities')] },
   ];
 }
@@ -68,7 +68,7 @@ const ICONS = ['🏠','🛒','🚗','⚡','💰','👶','🍽️','🎬','🏥',
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
-let state = { budget: null, activeRule: '50-30-20', activeTab: 'budget' };
+let state = { budget: null, activeRule: '50-30-20', activeTab: 'budget', plannerCatId: null };
 
 // ─── Persistence ──────────────────────────────────────────────────────────────
 
@@ -87,6 +87,7 @@ function migrateState(s) {
         if (sub.splitH===undefined) { sub.splitH=null; sub.splitL=null; }
         if (sub.payer===undefined) sub.payer=null;
       });
+      if (!cat.plan) cat.plan = { period:'monthly', items:[] };
     });
     if (!s.budget.debts) s.budget.debts = [];
     if (!s.budget.personal) s.budget.personal = {
@@ -1045,6 +1046,214 @@ function bindIncomeInputs() {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 
+
+// ─── Plans tab ────────────────────────────────────────────────────────────────
+
+function renderPlansTab() {
+  const data = getBudgetData();
+  const t    = calcTotals();
+  const container = document.getElementById('plans-grid');
+  if (!container) return;
+
+  if (state.plannerCatId) {
+    // Show single category planner
+    const cat = data.categories.find(c => c.id === state.plannerCatId);
+    if (!cat) { state.plannerCatId = null; renderPlansTab(); return; }
+    renderCategoryPlanner(cat, t);
+    return;
+  }
+
+  // Show grid of category cards
+  document.getElementById('plans-back').style.display = 'none';
+  container.innerHTML = '';
+  data.categories.forEach(cat => {
+    if (!cat.plan) cat.plan = { period:'monthly', items:[] };
+    const actual  = catTotal(cat);
+    const planned = planTotal(cat);
+    const period  = cat.plan.period || 'monthly';
+    const budgetAmt = actual; // actual from main budget is the target
+    const monthlyPlanned = period === 'weekly' ? planned * 4.33 : planned;
+    const diff = monthlyPlanned - budgetAmt;
+    const over = diff > 0.01;
+    const card = document.createElement('div');
+    card.className = 'plan-card';
+    card.innerHTML = `
+      <div class="plan-card-top">
+        <span class="plan-card-emoji">${cat.emoji}</span>
+        <div class="plan-card-info">
+          <span class="plan-card-name">${cat.name}</span>
+          <span class="plan-card-period">${period === 'weekly' ? 'Weekly plan' : 'Monthly plan'}</span>
+        </div>
+        <div class="plan-card-nums">
+          <span class="plan-card-budget">${fmt(budgetAmt)} budget</span>
+          <span class="plan-card-planned ${over?'over':''}">${fmt(monthlyPlanned)} planned</span>
+        </div>
+      </div>
+      <div class="plan-bar-track">
+        <div class="plan-bar-fill" style="width:${budgetAmt>0?Math.min(100,monthlyPlanned/budgetAmt*100):0}%;background:${over?'#C0392B':'#534AB7'}"></div>
+      </div>
+      <div class="plan-card-foot">
+        <span class="${over?'over lauri-color-text':''}">${cat.plan.items.length} items · ${over?'+'+fmt(diff)+' over':diff<-0.01?fmt(-diff)+' under':'on target'}</span>
+        <button class="btn-ghost plan-open-btn" data-catid="${cat.id}">Open plan →</button>
+      </div>`;
+    container.appendChild(card);
+  });
+
+  container.querySelectorAll('.plan-open-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      state.plannerCatId = e.currentTarget.dataset.catid;
+      renderPlansTab();
+    });
+  });
+}
+
+function planTotal(cat) {
+  return (cat.plan?.items||[]).reduce((s,i) => s + (+i.amount||0), 0);
+}
+
+function renderCategoryPlanner(cat, t) {
+  const container = document.getElementById('plans-grid');
+  document.getElementById('plans-back').style.display = 'flex';
+  document.getElementById('plans-back-label').textContent = `${cat.emoji} ${cat.name}`;
+
+  const plan    = cat.plan || { period:'monthly', items:[] };
+  const actual  = catTotal(cat);
+  const planned = planTotal(cat);
+  const period  = plan.period || 'monthly';
+  const monthlyPlanned = period === 'weekly' ? planned * 4.33 : planned;
+  const diff    = monthlyPlanned - actual;
+  const over    = diff > 0.01;
+  const weeklyBudget  = actual / 4.33;
+  const monthlyBudget = actual;
+
+  container.innerHTML = `
+    <div class="planner-wrap">
+      <div class="planner-header">
+        <div class="planner-summary">
+          <div class="planner-stat">
+            <span class="planner-stat-label">Monthly budget (from main)</span>
+            <span class="planner-stat-val">${fmt(monthlyBudget)}</span>
+          </div>
+          <div class="planner-stat">
+            <span class="planner-stat-label">Equivalent per week</span>
+            <span class="planner-stat-val">${fmt(weeklyBudget)}</span>
+          </div>
+          <div class="planner-stat">
+            <span class="planner-stat-label">Total planned (${period})</span>
+            <span class="planner-stat-val">${fmt(planned)}</span>
+          </div>
+          <div class="planner-stat">
+            <span class="planner-stat-label">Monthly equivalent</span>
+            <span class="planner-stat-val ${over?'over':''}">${fmt(monthlyPlanned)}</span>
+          </div>
+        </div>
+        <div class="planner-period-wrap">
+          <label class="planner-period-label">Plan by</label>
+          <div class="planner-period-pills">
+            <button class="period-pill ${period==='weekly'?'active':''}" data-period="weekly">Weekly</button>
+            <button class="period-pill ${period==='monthly'?'active':''}" data-period="monthly">Monthly</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="planner-bar-track">
+        <div class="planner-bar-fill" style="width:${actual>0?Math.min(100,monthlyPlanned/actual*100):0}%;background:${over?'#C0392B':'#534AB7'}"></div>
+      </div>
+      <div class="planner-bar-labels">
+        <span>${over?'⚠ '+fmt(diff)+' over monthly budget':'✓ '+fmt(-diff)+' under budget'}</span>
+        <span>${actual>0?Math.round(monthlyPlanned/actual*100):0}% of budget</span>
+      </div>
+
+      <div class="planner-items" id="planner-items-list"></div>
+
+      <div class="planner-add-row">
+        <input type="text" id="plan-item-name" placeholder="Item name e.g. Vegetables" style="flex:1;min-width:140px" />
+        <input type="number" id="plan-item-amount" placeholder="${period==='weekly'?'Weekly cost €':'Monthly cost €'}" min="0" step="0.50" style="width:160px" />
+        <button class="btn-primary" id="btn-add-plan-item">+ Add item</button>
+      </div>
+    </div>`;
+
+  renderPlanItems(cat, t, period);
+
+  // Period pills
+  container.querySelectorAll('.period-pill').forEach(btn => {
+    btn.addEventListener('click', e => {
+      cat.plan.period = e.currentTarget.dataset.period;
+      saveState();
+      renderCategoryPlanner(cat, t);
+    });
+  });
+
+  // Add item
+  document.getElementById('btn-add-plan-item').addEventListener('click', () => addPlanItem(cat, t));
+  document.getElementById('plan-item-amount').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addPlanItem(cat, t);
+  });
+}
+
+function renderPlanItems(cat, t, period) {
+  const list = document.getElementById('planner-items-list');
+  if (!list) return;
+  const items = cat.plan?.items || [];
+
+  if (items.length === 0) {
+    list.innerHTML = `<div class="plan-item-empty">No items yet — add your first planned expense below.</div>`;
+    return;
+  }
+
+  const weeklyBudget = catTotal(cat) / 4.33;
+
+  list.innerHTML = '';
+  items.forEach((item, idx) => {
+    const monthly = period === 'weekly' ? (+item.amount||0) * 4.33 : +item.amount||0;
+    const pctOfBudget = weeklyBudget > 0 ? Math.min(100, (period==='weekly'?+item.amount:monthly/4.33) / weeklyBudget * 100) : 0;
+    const row = document.createElement('div');
+    row.className = 'plan-item-row';
+    row.innerHTML = `
+      <div class="plan-item-left">
+        <span class="plan-item-name">${item.name}</span>
+        <div class="plan-item-bar-track"><div class="plan-item-bar" style="width:${pctOfBudget}%"></div></div>
+      </div>
+      <div class="plan-item-right">
+        <div class="plan-item-amounts">
+          <input type="number" class="plan-item-input" data-idx="${idx}" value="${item.amount||''}" placeholder="0.00" min="0" step="0.50" />
+          <span class="plan-item-period-label">${period==='weekly'?'/ week':'/ month'}</span>
+          ${period==='weekly'?`<span class="plan-item-monthly">${fmt(monthly)}/mo</span>`:''}
+        </div>
+        <button class="btn-icon btn-del-plan-item" data-idx="${idx}" title="Remove">✕</button>
+      </div>`;
+    list.appendChild(row);
+  });
+
+  // Bind inputs
+  list.querySelectorAll('.plan-item-input').forEach(input => {
+    input.addEventListener('change', e => {
+      cat.plan.items[+e.target.dataset.idx].amount = +e.target.value||0;
+      saveState();
+      renderCategoryPlanner(cat, t);
+    });
+  });
+  list.querySelectorAll('.btn-del-plan-item').forEach(btn => {
+    btn.addEventListener('click', e => {
+      cat.plan.items.splice(+e.currentTarget.dataset.idx, 1);
+      saveState();
+      renderCategoryPlanner(cat, t);
+    });
+  });
+}
+
+function addPlanItem(cat, t) {
+  const name   = document.getElementById('plan-item-name')?.value.trim();
+  const amount = parseFloat(document.getElementById('plan-item-amount')?.value||0);
+  if (!name) { document.getElementById('plan-item-name')?.focus(); return; }
+  if (!cat.plan) cat.plan = { period:'monthly', items:[] };
+  cat.plan.items.push({ id: uid(), name, amount: amount||0 });
+  saveState();
+  document.getElementById('plan-item-name').value = '';
+  document.getElementById('plan-item-amount').value = '';
+  renderCategoryPlanner(cat, t);
+}
+
 // ─── Hard reset ───────────────────────────────────────────────────────────────
 function hardReset() {
   if(!confirm('Reset all budget data to defaults? This cannot be undone.')) return;
@@ -1080,6 +1289,7 @@ async function init() {
       state.activeTab=btn.dataset.tab;
       renderTabs();
       if(state.activeTab==='charts') requestAnimationFrame(()=>requestAnimationFrame(()=>renderCharts(calcTotals())));
+      if(state.activeTab==='plans') renderPlansTab();
     });
   });
 
@@ -1098,6 +1308,7 @@ async function init() {
     if(btn) openSubModal(+btn.dataset.cidx);
   });
 
+  document.getElementById('btn-plans-back').addEventListener('click',()=>{ state.plannerCatId=null; renderPlansTab(); });
   document.getElementById('btn-add-debt').addEventListener('click',addDebt);
   document.getElementById('debt-amount').addEventListener('keydown',e=>{ if(e.key==='Enter') addDebt(); });
   document.getElementById('btn-export-excel').addEventListener('click',exportExcel);

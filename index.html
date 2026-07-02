@@ -87,6 +87,7 @@
     <div class="tab-bar">
       <button class="tab-btn" data-tab="budget">Budget</button>
       <button class="tab-btn" data-tab="charts">Charts</button>
+      <button class="tab-btn" data-tab="plans">Plans</button>
     </div>
 
     <!-- ── Budget tab ── -->
@@ -190,6 +191,16 @@
           <div class="chart-wrap"><canvas id="chart-buckets"></canvas></div>
         </div>
       </div>
+    </div>
+
+
+    <!-- ── Plans tab ── -->
+    <div class="tab-panel" data-panel="plans" style="display:none">
+      <div class="plans-back-bar" id="plans-back" style="display:none">
+        <button class="btn-ghost" id="btn-plans-back">← All categories</button>
+        <span class="plans-back-label" id="plans-back-label"></span>
+      </div>
+      <div id="plans-grid" class="plans-grid"></div>
     </div>
 
   </div>

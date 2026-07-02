@@ -651,3 +651,104 @@ select:focus, input:focus {
   font-size: 12px; font-weight: 500;
   padding: 6px 0 2px; opacity: 0.8;
 }
+
+/* ── Plans tab ────────────────────────────────────────────────────── */
+
+.plans-back-bar {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 1.25rem;
+}
+.plans-back-label { font-size: 15px; font-weight: 600; }
+
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+/* Plan cards (grid view) */
+.plan-card {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--radius); padding: 1.1rem 1.25rem;
+  display: flex; flex-direction: column; gap: 8px;
+  cursor: default;
+}
+.plan-card-top { display: flex; align-items: center; gap: 10px; }
+.plan-card-emoji { font-size: 24px; flex-shrink: 0; }
+.plan-card-info { flex: 1; }
+.plan-card-name { display: block; font-size: 14px; font-weight: 600; }
+.plan-card-period { display: block; font-size: 11px; color: var(--text-faint); margin-top: 1px; }
+.plan-card-nums { text-align: right; }
+.plan-card-budget { display: block; font-size: 12px; color: var(--text-muted); }
+.plan-card-planned { display: block; font-size: 16px; font-weight: 600; }
+.plan-card-planned.over { color: var(--danger); }
+
+.plan-bar-track { background: var(--bg); border-radius: 4px; height: 5px; overflow: hidden; }
+.plan-bar-fill  { height: 100%; border-radius: 4px; transition: width 0.3s; }
+
+.plan-card-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12px; color: var(--text-muted);
+}
+.plan-open-btn { font-size: 12px; padding: 4px 10px; }
+
+/* Category planner (detail view) */
+.planner-wrap { max-width: 700px; }
+
+.planner-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;
+}
+.planner-summary {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px 24px; flex: 1;
+}
+.planner-stat { display: flex; flex-direction: column; gap: 2px; }
+.planner-stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.planner-stat-val { font-size: 18px; font-weight: 600; }
+.planner-stat-val.over { color: var(--danger); }
+
+.planner-period-wrap { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.planner-period-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.planner-period-pills { display: flex; gap: 6px; }
+.period-pill {
+  background: transparent; border: 0.5px solid var(--border-strong);
+  border-radius: 100px; font-family: var(--font); font-size: 12px;
+  font-weight: 500; padding: 5px 14px; cursor: pointer; color: var(--text-muted);
+  transition: all 0.15s;
+}
+.period-pill.active { background: var(--henry); color: #fff; border-color: var(--henry); }
+.period-pill:hover:not(.active) { border-color: var(--henry); color: var(--henry); }
+
+.planner-bar-track { background: var(--bg); border-radius: 6px; height: 10px; overflow: hidden; margin-bottom: 4px; }
+.planner-bar-fill  { height: 100%; border-radius: 6px; transition: width 0.4s ease; }
+.planner-bar-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 1.25rem; }
+
+/* Plan items list */
+.planner-items { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem; }
+.plan-item-empty { font-size: 13px; color: var(--text-faint); padding: 1rem 0; }
+
+.plan-item-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px 1rem;
+}
+.plan-item-left { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.plan-item-name { font-size: 14px; font-weight: 500; }
+.plan-item-bar-track { background: var(--bg); border-radius: 3px; height: 4px; }
+.plan-item-bar { height: 100%; border-radius: 3px; background: var(--henry); transition: width 0.3s; }
+
+.plan-item-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.plan-item-amounts { display: flex; align-items: center; gap: 6px; }
+.plan-item-input { width: 90px !important; font-size: 13px !important; text-align: right; }
+.plan-item-period-label { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.plan-item-monthly { font-size: 12px; color: var(--text-faint); white-space: nowrap; }
+
+/* Add plan item row */
+.planner-add-row {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+}
