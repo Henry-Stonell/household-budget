@@ -120,6 +120,27 @@
         </div>
       </div>
 
+
+      <div class="debts-section">
+        <div class="section-header">
+          <h2>Debts &amp; IOUs</h2>
+          <span class="section-hint">One-off amounts owed between you — counted in the monthly transfer</span>
+        </div>
+
+        <!-- Add debt form -->
+        <div class="debt-add-row">
+          <input type="text" id="debt-desc" placeholder="What for? e.g. Car payment" style="flex:1;min-width:140px" />
+          <select id="debt-owedby" style="width:150px">
+            <option value="henry">Henry owes Lauri</option>
+            <option value="lauri">Lauri owes Henry</option>
+          </select>
+          <input type="number" id="debt-amount" placeholder="Amount €" min="0" step="0.01" style="width:120px" />
+          <button class="btn-primary" id="btn-add-debt">+ Add</button>
+        </div>
+
+        <div id="debts-list"></div>
+      </div>
+
       <div class="split-section">
         <h2>Who pays what</h2>
         <div class="split-grid">

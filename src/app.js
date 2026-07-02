@@ -88,6 +88,7 @@ function migrateState(s) {
         if (sub.payer===undefined) sub.payer=null;
       });
     });
+    if (!s.budget.debts) s.budget.debts = [];
     if (!s.budget.personal) s.budget.personal = {
       henry:{ collapsed:true, subs:[] },
       lauri:{ collapsed:true, subs:[] },
@@ -120,6 +121,7 @@ function getBudgetData() {
         henry:{ collapsed:true, subs:[] },
         lauri:{ collapsed:true, subs:[] },
       },
+      debts: [],  // { id, description, owedBy:'henry'|'lauri', amount, settled:false }
     };
     saveState();
   }
@@ -190,8 +192,14 @@ function calcTotals() {
   // If Henry paid less than he owes → Henry transfers to Lauri
   const henryOwed = henryShared; // his cost share
   const lauriOwed = lauriShared; // her cost share
-  const henryNet = henryPaid - henryOwed; // positive = overpaid, Lauri owes Henry
-  const lauriNet = lauriPaid - lauriOwed; // positive = overpaid, Henry owes Lauri
+  // Debt adjustments — unsettled debts shift the net transfer
+  let henryDebtOwed = 0, lauriDebtOwed = 0;
+  (data.debts||[]).filter(d=>!d.settled).forEach(d=>{
+    if(d.owedBy==='henry') henryDebtOwed += +d.amount||0;  // Henry owes Lauri
+    else lauriDebtOwed += +d.amount||0;                     // Lauri owes Henry
+  });
+  const henryNet = henryPaid - henryOwed + lauriDebtOwed - henryDebtOwed;
+  const lauriNet = lauriPaid - lauriOwed + henryDebtOwed - lauriDebtOwed;
 
   // Disposable = income − total spent (shared share + all personal)
   const henryDisposable = henry - henryTotal;
@@ -202,7 +210,8 @@ function calcTotals() {
            henryPersonal, lauriPersonal,
            henryTotal, lauriTotal,
            henryDisposable, lauriDisposable,
-           henryPaid, lauriPaid, henryOwed, lauriOwed, henryNet, lauriNet };
+           henryPaid, lauriPaid, henryOwed, lauriOwed, henryNet, lauriNet,
+           henryDebtOwed, lauriDebtOwed };
 }
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
@@ -319,6 +328,7 @@ function recalc() {
   renderPersonalBudgets(t);
   renderDisposable(t);
   renderSplitSection(t);
+  renderDebts(t);
   renderTransfers(t);
   if (state.activeTab==='charts') renderCharts(t);
   saveState();
@@ -568,6 +578,71 @@ function renderSplitSection(t) {
 }
 
 
+
+// ─── Debts ledger ─────────────────────────────────────────────────────────────
+
+function renderDebts(t) {
+  const el = document.getElementById('debts-list');
+  if (!el) return;
+  const debts = t.data.debts || [];
+
+  if (debts.length === 0) {
+    el.innerHTML = `<div class="debt-empty">No debts recorded — add one below.</div>`;
+    return;
+  }
+
+  el.innerHTML = debts.map((d, i) => {
+    const owedByName = d.owedBy === 'henry' ? 'Henry' : 'Lauri';
+    const owedToName = d.owedBy === 'henry' ? 'Lauri' : 'Henry';
+    const colorClass  = d.owedBy === 'henry' ? 'henry-color-text' : 'lauri-color-text';
+    return `
+      <div class="debt-row ${d.settled ? 'settled' : ''}">
+        <div class="debt-info">
+          <span class="debt-desc">${d.description}</span>
+          <span class="debt-who ${colorClass}">${owedByName} → ${owedToName}</span>
+        </div>
+        <span class="debt-amount">${fmt(+d.amount||0)}</span>
+        <div class="debt-actions">
+          <button class="btn-settle ${d.settled?'settled':''}" data-idx="${i}" title="${d.settled?'Mark as unsettled':'Mark as settled'}">
+            ${d.settled ? '↩ Reopen' : '✓ Settled'}
+          </button>
+          <button class="btn-icon btn-del-debt" data-idx="${i}" title="Delete">✕</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Events
+  el.querySelectorAll('.btn-settle').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const idx = +e.currentTarget.dataset.idx;
+      t.data.debts[idx].settled = !t.data.debts[idx].settled;
+      recalc();
+    });
+  });
+  el.querySelectorAll('.btn-del-debt').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const idx = +e.currentTarget.dataset.idx;
+      if (confirm(`Delete "${t.data.debts[idx].description}"?`)) {
+        t.data.debts.splice(idx, 1);
+        recalc();
+      }
+    });
+  });
+}
+
+function addDebt() {
+  const desc    = document.getElementById('debt-desc').value.trim();
+  const owedBy  = document.getElementById('debt-owedby').value;
+  const amount  = parseFloat(document.getElementById('debt-amount').value);
+  if (!desc) { document.getElementById('debt-desc').focus(); return; }
+  if (!amount || amount <= 0) { document.getElementById('debt-amount').focus(); return; }
+  const data = getBudgetData();
+  data.debts.push({ id: uid(), description: desc, owedBy, amount, settled: false });
+  document.getElementById('debt-desc').value = '';
+  document.getElementById('debt-amount').value = '';
+  recalc();
+}
+
 // ─── Transfers ────────────────────────────────────────────────────────────────
 
 function renderTransfers(t) {
@@ -598,6 +673,16 @@ function renderTransfers(t) {
         <div class="transfer-amount lauri-color-text">${fmt(amount)}</div>
         <div class="transfer-reason">Henry's share of shared costs paid by Lauri's account</div>
       </div>`;
+  }
+
+  // Debt line
+  const totalDebtH = t.henryDebtOwed||0;
+  const totalDebtL = t.lauriDebtOwed||0;
+  if(totalDebtH > 0.01 || totalDebtL > 0.01) {
+    html += `<div class="transfer-debts-line">`;
+    if(totalDebtH > 0.01) html += `<span class="henry-color-text">Henry owes Lauri ${fmt(totalDebtH)} (debts)</span>`;
+    if(totalDebtL > 0.01) html += `<span class="lauri-color-text">Lauri owes Henry ${fmt(totalDebtL)} (debts)</span>`;
+    html += `</div>`;
   }
 
   // Detail breakdown
@@ -1013,6 +1098,8 @@ async function init() {
     if(btn) openSubModal(+btn.dataset.cidx);
   });
 
+  document.getElementById('btn-add-debt').addEventListener('click',addDebt);
+  document.getElementById('debt-amount').addEventListener('keydown',e=>{ if(e.key==='Enter') addDebt(); });
   document.getElementById('btn-export-excel').addEventListener('click',exportExcel);
   document.getElementById('btn-export-pdf').addEventListener('click',exportPDF);
   document.getElementById('btn-reset').addEventListener('click',hardReset);
