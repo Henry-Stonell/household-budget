@@ -745,17 +745,18 @@ function renderCharts(t) {
 
   destroyCharts();
 
-  // Force explicit canvas dimensions — critical when switching from hidden tab
-  document.querySelectorAll('.chart-wrap').forEach(wrap => {
-    const canvas = wrap.querySelector('canvas');
-    if (!canvas) return;
-    const w = wrap.clientWidth || wrap.offsetWidth || 600;
-    const h = wrap.clientHeight || wrap.offsetHeight || 260;
-    canvas.style.width  = w + 'px';
-    canvas.style.height = h + 'px';
-    canvas.width  = w;
-    canvas.height = h;
-  });
+  // Snapshot wrapper dimensions before drawing — read once, don't observe
+  const getSize = id => {
+    const wrap = document.getElementById(id)?.closest('.chart-wrap');
+    if (!wrap) return { w: 600, h: 260 };
+    return { w: Math.max(100, wrap.clientWidth), h: Math.max(100, wrap.clientHeight) };
+  };
+  const applySize = id => {
+    const el = document.getElementById(id);
+    const s  = getSize(id);
+    if (el) { el.width = s.w; el.height = s.h; }
+  };
+  ['chart-breakdown','chart-income-spend','chart-disposable','chart-buckets'].forEach(applySize);
 
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   const textColor  = isDark ? '#b0afc0' : '#444';
@@ -764,9 +765,9 @@ function renderCharts(t) {
   const COLORS = ['#534AB7','#0F6E56','#B87333','#6B3FA0','#C0392B','#2980B9','#E67E22','#16A085'];
 
   const sharedOpts = {
-    responsive: true,
+    responsive: false,
     maintainAspectRatio: false,
-    animation: { duration: 500 },
+    animation: { duration: 400 },
     plugins: {
       legend: { labels: { color: textColor, boxWidth: 14, padding: 14, font: { size: 12 } } },
       tooltip: {
@@ -977,17 +978,17 @@ function renderCharts(t) {
   }
 
   // Resize observer
-  if (window._chartResizeObserver) window._chartResizeObserver.disconnect();
+  // Window resize handler (debounced) — no ResizeObserver to avoid canvas-resize loop
   if (window._chartResizeTimer) clearTimeout(window._chartResizeTimer);
-  window._chartResizeObserver = new ResizeObserver(() => {
-    if (state.activeTab === 'charts') {
-      clearTimeout(window._chartResizeTimer);
-      window._chartResizeTimer = setTimeout(() => renderCharts(calcTotals()), 100);
-    }
-  });
-  document.querySelectorAll('.chart-wrap').forEach(wrap => {
-    window._chartResizeObserver.observe(wrap);
-  });
+  if (!window._chartWindowResizeHandler) {
+    window._chartWindowResizeHandler = () => {
+      if (state.activeTab === 'charts') {
+        clearTimeout(window._chartResizeTimer);
+        window._chartResizeTimer = setTimeout(() => renderCharts(calcTotals()), 250);
+      }
+    };
+    window.addEventListener('resize', window._chartWindowResizeHandler);
+  }
 }
 
 // ─── Export: Excel ────────────────────────────────────────────────────────────
