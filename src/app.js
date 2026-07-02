@@ -959,10 +959,34 @@ function bindIncomeInputs() {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
+
+// ─── Hard reset ───────────────────────────────────────────────────────────────
+function hardReset() {
+  if(!confirm('Reset all budget data to defaults? This cannot be undone.')) return;
+  localStorage.removeItem('hl-budget');
+  state = { budget: null, activeRule: '50-30-20', activeTab: 'budget' };
+  getBudgetData();
+  renderRuleBar();
+  renderTabs();
+  render();
+}
+
 async function init() {
-  await loadState();
-  if(!state.activeRule) state.activeRule='50-30-20';
-  if(!state.activeTab)  state.activeTab='budget';
+  try {
+    await loadState();
+  } catch(e) {
+    console.warn('State load failed, resetting:', e);
+    state = { budget: null, activeRule: '50-30-20', activeTab: 'budget' };
+  }
+  // Safety checks — if state looks corrupt, reset it
+  if(!state || typeof state !== 'object') state = { budget: null, activeRule: '50-30-20', activeTab: 'budget' };
+  if(!state.activeRule || !RULES[state.activeRule]) state.activeRule = '50-30-20';
+  if(!state.activeTab) state.activeTab = 'budget';
+  // If budget data is malformed, wipe and rebuild cleanly
+  if(state.budget && (!Array.isArray(state.budget.categories) || !state.budget.personal)) {
+    console.warn('Corrupt budget data, rebuilding');
+    state.budget = null;
+  }
   getBudgetData();
 
   // Tabs
@@ -991,8 +1015,18 @@ async function init() {
 
   document.getElementById('btn-export-excel').addEventListener('click',exportExcel);
   document.getElementById('btn-export-pdf').addEventListener('click',exportPDF);
+  document.getElementById('btn-reset').addEventListener('click',hardReset);
 
-  render();
+  try {
+    render();
+  } catch(e) {
+    console.error('Render failed:', e);
+    // Nuclear option: wipe state and retry once
+    state = { budget: null, activeRule: '50-30-20', activeTab: 'budget' };
+    await saveState();
+    getBudgetData();
+    render();
+  }
 }
 
 document.addEventListener('DOMContentLoaded',init);

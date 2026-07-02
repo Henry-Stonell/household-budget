@@ -596,3 +596,6 @@ select:focus, input:focus {
   border-left: 0.5px solid var(--border);
 }
 .transfer-detail-row:nth-last-child(-n+2) { border-bottom: none; }
+
+.btn-danger { color: var(--danger); border-color: var(--danger); }
+.btn-danger:hover { background: var(--danger-light); }
