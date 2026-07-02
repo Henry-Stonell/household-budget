@@ -161,57 +161,69 @@ function calcTotals() {
   const rH = total>0 ? henry/total : 0.5;
   const rL = total>0 ? lauri/total : 0.5;
 
+  // ── Shared expenses ──────────────────────────────────────────────────────────
+  // henryShared/lauriShared = each person's COST SHARE (what they owe, per split %)
   let henryShared=0, lauriShared=0, totalShared=0;
   data.categories.forEach(cat => {
     const a = catSplitAmounts(cat,rH,rL);
     henryShared+=a.henry; lauriShared+=a.lauri; totalShared+=catTotal(cat);
   });
 
+  // ── Personal expenses ────────────────────────────────────────────────────────
   const henryPersonal = (data.personal?.henry?.subs||[]).reduce((s,sub)=>s+(+sub.real||0),0);
   const lauriPersonal = (data.personal?.lauri?.subs||[]).reduce((s,sub)=>s+(+sub.real||0),0);
 
+  // ── IOUs / Debts ─────────────────────────────────────────────────────────────
+  // henryDebtOwed = amount Henry owes Lauri (reduces Henry's disposable, increases Lauri's)
+  // lauriDebtOwed = amount Lauri owes Henry (reduces Lauri's disposable, increases Henry's)
+  let henryDebtOwed = 0, lauriDebtOwed = 0;
+  (data.debts||[]).filter(d=>!d.settled).forEach(d=>{
+    if(d.owedBy==='henry') henryDebtOwed += +d.amount||0;
+    else                    lauriDebtOwed += +d.amount||0;
+  });
+
+  // ── Net remaining (disposable) ───────────────────────────────────────────────
+  // Income − cost share of shared − personal − IOUs owed by this person
+  const henryDisposable = henry - henryShared - henryPersonal - henryDebtOwed;
+  const lauriDisposable = lauri - lauriShared - lauriPersonal - lauriDebtOwed;
+
+  // For display totals (excluding debt — debt is a separate line)
   const henryTotal = henryShared + henryPersonal;
   const lauriTotal = lauriShared + lauriPersonal;
 
-  // Payment account tracking — who physically pays each sub
+  // ── Transfer calculation ─────────────────────────────────────────────────────
+  // Based purely on account payments vs cost share of SHARED expenses.
+  // Personal expenses are already per-person so no transfer needed for those.
+  // henryPaid = what physically left Henry's bank account (shared bills only)
+  // henryShared = what Henry actually owes (his cost share)
+  // If henryPaid > henryShared → Henry overpaid → Lauri owes Henry the difference
+  // If henryPaid < henryShared → Henry underpaid → Henry owes Lauri the difference
   let henryPaid=0, lauriPaid=0;
   data.categories.forEach(cat=>{
     (cat.subs||[]).forEach(sub=>{
       const real=+sub.real||0;
-      if(sub.payer==='henry') henryPaid+=real;
+      if(sub.payer==='henry')      henryPaid+=real;
       else if(sub.payer==='lauri') lauriPaid+=real;
       else {
-        // No payer set — assume paid proportionally (no transfer needed)
+        // No payer set → each pays their own share (no transfer)
         const a=subAmounts(sub,rH,rL);
         henryPaid+=a.henry; lauriPaid+=a.lauri;
       }
     });
   });
-  // Henry owes: his share of all shared costs
-  // Henry paid: what came out of his account
-  // If Henry paid more than he owes → Lauri transfers to Henry
-  // If Henry paid less than he owes → Henry transfers to Lauri
-  const henryOwed = henryShared; // his cost share
-  const lauriOwed = lauriShared; // her cost share
-  // Debt adjustments — unsettled debts shift the net transfer
-  let henryDebtOwed = 0, lauriDebtOwed = 0;
-  (data.debts||[]).filter(d=>!d.settled).forEach(d=>{
-    if(d.owedBy==='henry') henryDebtOwed += +d.amount||0;  // Henry owes Lauri
-    else lauriDebtOwed += +d.amount||0;                     // Lauri owes Henry
-  });
-  const henryNet = henryPaid - henryOwed + lauriDebtOwed - henryDebtOwed;
-  const lauriNet = lauriPaid - lauriOwed + henryDebtOwed - lauriDebtOwed;
 
-  // Disposable = income − total spent (shared share + all personal)
-  const henryDisposable = henry - henryTotal;
-  const lauriDisposable = lauri - lauriTotal;
+  // Transfer = (what you paid from account − what you owe) + debts others owe you − debts you owe
+  // Positive henryNet = Henry overpaid overall → Lauri transfers to Henry
+  const henryNet = (henryPaid - henryShared) + lauriDebtOwed - henryDebtOwed;
+  const lauriNet = (lauriPaid - lauriShared) + henryDebtOwed - lauriDebtOwed;
 
   return { data, henry, lauri, total, rH, rL,
            henryShared, lauriShared, totalShared,
            henryPersonal, lauriPersonal,
            henryTotal, lauriTotal,
            henryDisposable, lauriDisposable,
-           henryPaid, lauriPaid, henryOwed, lauriOwed, henryNet, lauriNet,
+           henryPaid, lauriPaid,
+           henryNet, lauriNet,
            henryDebtOwed, lauriDebtOwed };
 }
 
@@ -290,20 +302,28 @@ function renderDisposable(t) {
   if (!el) return;
   const hOver = t.henryDisposable < 0;
   const lOver = t.lauriDisposable < 0;
+
+  const henryDebtLine = t.henryDebtOwed > 0.005
+    ? `<div class="disp-row"><span class="disp-label">IOUs owed to Lauri</span><span class="over">− ${fmt(t.henryDebtOwed)}</span></div>` : '';
+  const lauriDebtLine = t.lauriDebtOwed > 0.005
+    ? `<div class="disp-row"><span class="disp-label">IOUs owed to Henry</span><span class="over">− ${fmt(t.lauriDebtOwed)}</span></div>` : '';
+
   el.innerHTML = `
     <div class="disp-card">
       <div class="disp-person henry-color-text">Henry</div>
       <div class="disp-row"><span class="disp-label">Income</span><span>${fmt(t.henry)}</span></div>
-      <div class="disp-row"><span class="disp-label">Shared expenses</span><span>− ${fmt(t.henryShared)}</span></div>
+      <div class="disp-row"><span class="disp-label">Shared expenses (his share)</span><span>− ${fmt(t.henryShared)}</span></div>
       <div class="disp-row"><span class="disp-label">Personal expenses</span><span>− ${fmt(t.henryPersonal)}</span></div>
-      <div class="disp-row disp-total"><span class="disp-label">Remaining</span><span class="${hOver?'over':''}">${fmt(t.henryDisposable)}</span></div>
+      ${henryDebtLine}
+      <div class="disp-row disp-total"><span class="disp-label">Net remaining</span><span class="${hOver?'over':''}">${fmt(t.henryDisposable)}</span></div>
     </div>
     <div class="disp-card">
       <div class="disp-person lauri-color-text">Lauri</div>
       <div class="disp-row"><span class="disp-label">Income</span><span>${fmt(t.lauri)}</span></div>
-      <div class="disp-row"><span class="disp-label">Shared expenses</span><span>− ${fmt(t.lauriShared)}</span></div>
+      <div class="disp-row"><span class="disp-label">Shared expenses (her share)</span><span>− ${fmt(t.lauriShared)}</span></div>
       <div class="disp-row"><span class="disp-label">Personal expenses</span><span>− ${fmt(t.lauriPersonal)}</span></div>
-      <div class="disp-row disp-total"><span class="disp-label">Remaining</span><span class="${lOver?'over':''}">${fmt(t.lauriDisposable)}</span></div>
+      ${lauriDebtLine}
+      <div class="disp-row disp-total"><span class="disp-label">Net remaining</span><span class="${lOver?'over':''}">${fmt(t.lauriDisposable)}</span></div>
     </div>`;
 }
 
@@ -567,15 +587,14 @@ function renderSplitSection(t) {
   if(t.henryPersonal>0) hRows.innerHTML+=`<div class="split-row"><span class="split-row-name">👤 Personal</span><span class="split-amt">${fmt(t.henryPersonal)}</span></div>`;
   if(t.lauriPersonal>0) lRows.innerHTML+=`<div class="split-row"><span class="split-row-name">👤 Personal</span><span class="split-amt">${fmt(t.lauriPersonal)}</span></div>`;
   hTot+=t.henryPersonal; lTot+=t.lauriPersonal;
-  const hDisp=t.henry-hTot, lDisp=t.lauri-lTot;
   document.getElementById('henry-total-row').innerHTML=`
     <span>Total spent</span><span>${fmt(hTot)}</span>`;
   document.getElementById('lauri-total-row').innerHTML=`
     <span>Total spent</span><span>${fmt(lTot)}</span>`;
   document.getElementById('henry-remaining-row').innerHTML=`
-    <span>Remaining</span><span class="${hDisp<0?'over':''}">${fmt(hDisp)}</span>`;
+    <span>Net remaining</span><span class="${t.henryDisposable<0?'over':''}">${fmt(t.henryDisposable)}</span>`;
   document.getElementById('lauri-remaining-row').innerHTML=`
-    <span>Remaining</span><span class="${lDisp<0?'over':''}">${fmt(lDisp)}</span>`;
+    <span>Net remaining</span><span class="${t.lauriDisposable<0?'over':''}">${fmt(t.lauriDisposable)}</span>`;
 }
 
 
@@ -676,14 +695,12 @@ function renderTransfers(t) {
       </div>`;
   }
 
-  // Debt line
-  const totalDebtH = t.henryDebtOwed||0;
-  const totalDebtL = t.lauriDebtOwed||0;
-  if(totalDebtH > 0.01 || totalDebtL > 0.01) {
-    html += `<div class="transfer-debts-line">`;
-    if(totalDebtH > 0.01) html += `<span class="henry-color-text">Henry owes Lauri ${fmt(totalDebtH)} (debts)</span>`;
-    if(totalDebtL > 0.01) html += `<span class="lauri-color-text">Lauri owes Henry ${fmt(totalDebtL)} (debts)</span>`;
-    html += `</div>`;
+  // IOU/debt breakdown lines
+  if((t.henryDebtOwed||0) > 0.01) {
+    html += `<div class="transfer-debts-line"><span class="henry-color-text">+ Henry owes Lauri ${fmt(t.henryDebtOwed)} (IOUs)</span></div>`;
+  }
+  if((t.lauriDebtOwed||0) > 0.01) {
+    html += `<div class="transfer-debts-line"><span class="lauri-color-text">+ Lauri owes Henry ${fmt(t.lauriDebtOwed)} (IOUs)</span></div>`;
   }
 
   // Detail breakdown
