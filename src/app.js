@@ -375,15 +375,20 @@ function renderCatRows(data, rH, rL) {
         <input type="number" class="sub-input" data-cidx="${cIdx}" data-sidx="${sIdx}"
           value="${sub.real||''}" placeholder="0" min="0" step="10" />
         <span class="diff-pill neutral">—</span>
-        <div class="split-control" data-cidx="${cIdx}" data-sidx="${sIdx}">
-          <span class="henry-share split-label">H: ${fmt(hAmt)}</span>
-          <div class="split-slider-wrap ${hasCustom?'is-custom':''}">
-            <span class="split-pct henry-pct">${sH}%</span>
-            <input type="range" class="split-slider" title="Double-click to reset to income ratio"
-              min="0" max="100" step="5" value="${sH}" data-cidx="${cIdx}" data-sidx="${sIdx}" />
-            <span class="split-pct lauri-pct">${sL}%</span>
+        <div class="split-control ${hasCustom?'is-custom':'}" data-cidx="${cIdx}" data-sidx="${sIdx}">
+          <div class="split-input-wrap">
+            <span class="henry-share split-label-sm">H</span>
+            <input type="number" class="split-pct-input henry-pct-input" title="Henry's % (auto-adjusts Lauri)"
+              min="0" max="100" step="1" value="${sH}" data-cidx="${cIdx}" data-sidx="${sIdx}" data-person="henry" />
+            <span class="split-sep">%</span>
           </div>
-          <span class="lauri-share split-label">L: ${fmt(lAmt)}</span>
+          <div class="split-input-wrap">
+            <span class="lauri-share split-label-sm">L</span>
+            <input type="number" class="split-pct-input lauri-pct-input" title="Lauri's % (auto-adjusts Henry)"
+              min="0" max="100" step="1" value="${sL}" data-cidx="${cIdx}" data-sidx="${sIdx}" data-person="lauri" />
+            <span class="split-sep">%</span>
+          </div>
+          <button class="btn-reset-split" data-cidx="${cIdx}" data-sidx="${sIdx}" title="Reset to income ratio">↺</button>
         </div>
         <select class="payer-select ${sub.payer==='henry'?'pays-henry':sub.payer==='lauri'?'pays-lauri':''}" data-cidx="${cIdx}" data-sidx="${sIdx}" title="Whose account pays this in full?">
           <option value="">No preference</option>
@@ -416,25 +421,25 @@ function renderCatRows(data, rH, rL) {
       recalc();
     });
   });
-  container.querySelectorAll('.split-slider').forEach(slider=>{
-    slider.addEventListener('input',e=>{
-      const {cidx,sidx}=e.target.dataset;
-      const sH=+e.target.value, sL=100-sH;
+  container.querySelectorAll('.split-pct-input').forEach(input=>{
+    input.addEventListener('change',e=>{
+      const {cidx,sidx,person}=e.target.dataset;
+      let val=Math.min(100,Math.max(0,+e.target.value||0));
+      e.target.value=val;
       const sub=data.categories[+cidx].subs[+sidx];
-      sub.splitH=sH; sub.splitL=sL;
+      if(person==='henry'){ sub.splitH=val; sub.splitL=100-val; }
+      else { sub.splitL=val; sub.splitH=100-val; }
+      // Update the sibling input immediately
       const wrap=e.target.closest('.split-control');
-      wrap.querySelector('.henry-pct').textContent=sH+'%';
-      wrap.querySelector('.lauri-pct').textContent=sL+'%';
-      wrap.querySelector('.split-slider-wrap').classList.add('is-custom');
-      const real=+sub.real||0;
-      wrap.querySelector('.henry-share').textContent='H: '+fmt(real*sH/100);
-      wrap.querySelector('.lauri-share').textContent='L: '+fmt(real*sL/100);
-      saveState();
-      clearTimeout(slider._t);
-      slider._t=setTimeout(recalc,300);
+      const other=wrap.querySelector(person==='henry'?'.lauri-pct-input':'.henry-pct-input');
+      if(other) other.value=person==='henry'?100-val:100-val;
+      wrap.classList.add('is-custom');
+      recalc();
     });
-    slider.addEventListener('dblclick',e=>{
-      const {cidx,sidx}=e.target.dataset;
+  });
+  container.querySelectorAll('.btn-reset-split').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      const {cidx,sidx}=e.currentTarget.dataset;
       const sub=data.categories[+cidx].subs[+sidx];
       sub.splitH=null; sub.splitL=null;
       recalc();

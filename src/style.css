@@ -332,32 +332,41 @@ select:focus, input:focus {
   .rule-desc { display: none; }
 }
 
-/* ── Split slider ─────────────────────────────────────────────────── */
+/* ── Split % inputs ───────────────────────────────────────────────── */
 
 .split-control {
-  display: flex; align-items: center; gap: 6px; font-size: 12px;
+  display: flex; align-items: center; gap: 6px;
 }
-.split-label { min-width: 56px; font-size: 12px; }
-.split-label.henry-share { color: var(--henry); font-weight: 500; text-align: right; }
-.split-label.lauri-share { color: var(--lauri); font-weight: 500; }
+.split-control.is-custom .split-pct-input { border-color: var(--henry); background: var(--henry-light); color: var(--henry); font-weight: 600; }
 
-.split-slider-wrap {
-  display: flex; align-items: center; gap: 4px;
-  background: var(--bg); border: 0.5px solid var(--border-strong);
-  border-radius: 100px; padding: 3px 8px;
-  transition: border-color 0.15s;
+.split-input-wrap {
+  display: flex; align-items: center; gap: 3px;
 }
-.split-slider-wrap.is-custom { border-color: var(--henry); background: var(--henry-light); }
-
-.split-pct { font-size: 11px; font-weight: 600; min-width: 26px; text-align: center; color: var(--text-muted); }
-.split-slider-wrap.is-custom .split-pct { color: var(--henry); }
-
-input[type="range"].split-slider {
-  width: 70px; height: 4px; border: none; border-radius: 2px;
-  background: var(--border-strong); padding: 0; cursor: pointer;
-  accent-color: var(--henry);
+.split-label-sm {
+  font-size: 11px; font-weight: 700; min-width: 12px;
 }
-input[type="range"].split-slider:focus { box-shadow: none; border-color: transparent; }
+.split-label-sm.henry-share { color: var(--henry); }
+.split-label-sm.lauri-share { color: var(--lauri); }
+
+.split-pct-input {
+  width: 46px !important;
+  font-size: 12px !important;
+  padding: 4px 4px !important;
+  text-align: center;
+  border-radius: var(--radius-sm);
+}
+.split-pct-input::-webkit-inner-spin-button,
+.split-pct-input::-webkit-outer-spin-button { opacity: 0.5; }
+
+.split-sep { font-size: 11px; color: var(--text-faint); }
+
+.btn-reset-split {
+  background: none; border: 0.5px solid var(--border-strong);
+  border-radius: 4px; font-size: 13px; cursor: pointer;
+  color: var(--text-faint); padding: 2px 5px; line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+.btn-reset-split:hover { color: var(--henry); background: var(--henry-light); border-color: var(--henry); }
 
 /* ── Personal budget section ──────────────────────────────────────── */
 
