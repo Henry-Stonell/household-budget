@@ -719,7 +719,26 @@ function destroyCharts() {
 }
 
 function renderCharts(t) {
+  // Guard: Chart.js must be loaded
+  if (typeof Chart === 'undefined') {
+    console.warn('Chart.js not loaded yet, retrying...');
+    setTimeout(() => renderCharts(t), 200);
+    return;
+  }
+
   destroyCharts();
+
+  // Force explicit canvas dimensions — critical when switching from hidden tab
+  document.querySelectorAll('.chart-wrap').forEach(wrap => {
+    const canvas = wrap.querySelector('canvas');
+    if (!canvas) return;
+    const w = wrap.clientWidth || wrap.offsetWidth || 600;
+    const h = wrap.clientHeight || wrap.offsetHeight || 260;
+    canvas.style.width  = w + 'px';
+    canvas.style.height = h + 'px';
+    canvas.width  = w;
+    canvas.height = h;
+  });
 
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   const textColor  = isDark ? '#b0afc0' : '#444';
@@ -942,11 +961,16 @@ function renderCharts(t) {
 
   // Resize observer
   if (window._chartResizeObserver) window._chartResizeObserver.disconnect();
+  if (window._chartResizeTimer) clearTimeout(window._chartResizeTimer);
   window._chartResizeObserver = new ResizeObserver(() => {
-    if (state.activeTab === 'charts') requestAnimationFrame(() => renderCharts(calcTotals()));
+    if (state.activeTab === 'charts') {
+      clearTimeout(window._chartResizeTimer);
+      window._chartResizeTimer = setTimeout(() => renderCharts(calcTotals()), 100);
+    }
   });
-  const firstWrap = document.getElementById('chart-breakdown')?.closest('.chart-wrap');
-  if (firstWrap) window._chartResizeObserver.observe(firstWrap);
+  document.querySelectorAll('.chart-wrap').forEach(wrap => {
+    window._chartResizeObserver.observe(wrap);
+  });
 }
 
 // ─── Export: Excel ────────────────────────────────────────────────────────────
@@ -1415,7 +1439,7 @@ async function init() {
     btn.addEventListener('click',()=>{
       state.activeTab=btn.dataset.tab;
       renderTabs();
-      if(state.activeTab==='charts') requestAnimationFrame(()=>requestAnimationFrame(()=>renderCharts(calcTotals())));
+      if(state.activeTab==='charts') setTimeout(()=>renderCharts(calcTotals()), 50);
       if(state.activeTab==='plans') renderPlansTab();
     });
   });
