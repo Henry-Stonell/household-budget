@@ -178,16 +178,24 @@
     <!-- ── Charts tab ── -->
     <div class="tab-panel" data-panel="charts" style="display:none">
       <div class="charts-grid">
-        <div class="chart-card">
-          <h3>Spending breakdown</h3>
-          <div class="chart-wrap"><canvas id="chart-breakdown"></canvas></div>
+        <div class="chart-card chart-card--wide">
+          <h3>📊 Spending breakdown — where does the money go?</h3>
+          <p class="chart-desc">Monthly spend across all shared and personal categories</p>
+          <div class="chart-wrap chart-wrap--tall"><canvas id="chart-breakdown"></canvas></div>
         </div>
         <div class="chart-card">
-          <h3>Income vs expenses per person</h3>
+          <h3>💶 Income vs expenses</h3>
+          <p class="chart-desc">How each person's income is split across shared, personal, and remaining</p>
           <div class="chart-wrap"><canvas id="chart-income-spend"></canvas></div>
         </div>
+        <div class="chart-card">
+          <h3>🎯 Remaining per person</h3>
+          <p class="chart-desc">What proportion of each income is spent vs left over</p>
+          <div class="chart-wrap"><canvas id="chart-disposable"></canvas></div>
+        </div>
         <div class="chart-card chart-card--wide">
-          <h3>Budget rule — target vs actual</h3>
+          <h3>📐 Budget rule — target vs actual</h3>
+          <p class="chart-desc">How your real spending compares to the recommended split for your chosen budget rule</p>
           <div class="chart-wrap"><canvas id="chart-buckets"></canvas></div>
         </div>
       </div>

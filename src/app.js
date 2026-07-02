@@ -89,7 +89,7 @@ function migrateState(s) {
       });
       if (!cat.plan) cat.plan = { period:'monthly', items:[] };
     });
-    if (!s.budget.debts) s.budget.debts = [];
+    if (!Array.isArray(s.budget.debts)) s.budget.debts = [];
     if (!s.budget.personal) s.budget.personal = {
       henry:{ collapsed:true, subs:[] },
       lauri:{ collapsed:true, subs:[] },
@@ -584,8 +584,8 @@ function renderSplitSection(t) {
 
 function renderDebts(t) {
   const el = document.getElementById('debts-list');
-  if (!el) return;
-  const debts = t.data.debts || [];
+  if (!el) { console.warn('debts-list not found'); return; }
+  const debts = (t.data.debts || []).filter(Boolean);
 
   if (debts.length === 0) {
     el.innerHTML = `<div class="debt-empty">No debts recorded — add one below.</div>`;
@@ -721,105 +721,232 @@ function destroyCharts() {
 function renderCharts(t) {
   destroyCharts();
 
-  // Ensure canvases have explicit pixel dimensions (needed when tab was hidden)
-  ['chart-breakdown','chart-income-spend','chart-buckets'].forEach(id=>{
-    const wrap=document.getElementById(id)?.parentElement;
-    const el=document.getElementById(id);
-    if(wrap&&el){ el.width=wrap.offsetWidth||600; el.height=wrap.offsetHeight||260; }
-  });
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const textColor  = isDark ? '#b0afc0' : '#444';
+  const gridColor  = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  const fmtEur = v => '€' + Number(v).toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const COLORS = ['#534AB7','#0F6E56','#B87333','#6B3FA0','#C0392B','#2980B9','#E67E22','#16A085'];
 
-  const isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const textColor=isDark?'#aaa':'#555';
-  const gridColor=isDark?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.07)';
+  const sharedOpts = {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 500 },
+    plugins: {
+      legend: { labels: { color: textColor, boxWidth: 14, padding: 14, font: { size: 12 } } },
+      tooltip: {
+        callbacks: {
+          label: ctx => ' ' + fmtEur(ctx.parsed.y ?? ctx.parsed)
+        }
+      }
+    }
+  };
 
-  // 1. Spending breakdown donut
-  const catLabels=t.data.categories.map(c=>c.name);
-  const catValues=t.data.categories.map(c=>catTotal(c));
-  const colors=['#534AB7','#0F6E56','#B87333','#6B3FA0','#C0392B','#2980B9','#8B7355','#27AE60'];
+  function axisOpts() {
+    return {
+      x: { ticks: { color: textColor, font:{size:11} }, grid: { color: gridColor } },
+      y: { ticks: { color: textColor, font:{size:11}, callback: v => fmtEur(v) }, grid: { color: gridColor } }
+    };
+  }
 
-  const ctx1=document.getElementById('chart-breakdown')?.getContext('2d');
-  if(ctx1){
-    chartInstances.breakdown=new Chart(ctx1,{
-      type:'doughnut',
-      data:{
-        labels:[...catLabels,'Henry personal','Lauri personal'],
-        datasets:[{
-          data:[...catValues, t.henryPersonal, t.lauriPersonal],
-          backgroundColor:[...colors.slice(0,catLabels.length),'#534AB7aa','#0F6E56aa'],
-          borderWidth:0,
+  // ── Chart 1: Spending breakdown horizontal bar ──────────────────────────────
+  const catLabels = t.data.categories.map(c => c.emoji + ' ' + c.name);
+  const catValues = t.data.categories.map(c => catTotal(c));
+  const allLabels = [...catLabels];
+  const allValues = [...catValues];
+  if (t.henryPersonal > 0) { allLabels.push('👤 Henry personal'); allValues.push(t.henryPersonal); }
+  if (t.lauriPersonal > 0) { allLabels.push('👤 Lauri personal'); allValues.push(t.lauriPersonal); }
+  const totalSpend = allValues.reduce((a,b)=>a+b,0);
+
+  const ctx1 = document.getElementById('chart-breakdown')?.getContext('2d');
+  if (ctx1) {
+    chartInstances.breakdown = new Chart(ctx1, {
+      type: 'bar',
+      data: {
+        labels: allLabels,
+        datasets: [{
+          label: 'Monthly spend',
+          data: allValues,
+          backgroundColor: COLORS.slice(0, allValues.length).map(c=>c+'cc'),
+          borderRadius: 5,
         }]
       },
-      options:{
-        responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{ position:'right', labels:{color:textColor,boxWidth:12,padding:12} } }
-      }
-    });
-  }
-
-  // 2. Income vs spending bar
-  const ctx2=document.getElementById('chart-income-spend')?.getContext('2d');
-  if(ctx2){
-    chartInstances.incomeSpend=new Chart(ctx2,{
-      type:'bar',
-      data:{
-        labels:['Henry','Lauri'],
-        datasets:[
-          { label:'Income', data:[t.henry,t.lauri], backgroundColor:'#534AB7aa', borderRadius:6 },
-          { label:'Shared expenses', data:[t.henryShared,t.lauriShared], backgroundColor:'#C0392Baa', borderRadius:6 },
-          { label:'Personal expenses', data:[t.henryPersonal,t.lauriPersonal], backgroundColor:'#B87333aa', borderRadius:6 },
-          { label:'Remaining', data:[Math.max(0,t.henryDisposable),Math.max(0,t.lauriDisposable)], backgroundColor:'#0F6E56aa', borderRadius:6 },
-        ]
-      },
-      options:{
-        responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{ labels:{color:textColor} } },
-        scales:{
-          x:{ ticks:{color:textColor}, grid:{color:gridColor} },
-          y:{ ticks:{color:textColor, callback:v=>Number(v).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})}, grid:{color:gridColor} }
+      options: {
+        ...sharedOpts,
+        indexAxis: 'y',
+        plugins: {
+          ...sharedOpts.plugins,
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const pct = totalSpend > 0 ? (ctx.parsed.x / totalSpend * 100).toFixed(1) : 0;
+                return ` ${fmtEur(ctx.parsed.x)}  (${pct}% of total spend)`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: textColor, callback: v => fmtEur(v) }, grid: { color: gridColor } },
+          y: { ticks: { color: textColor, font:{size:12} }, grid: { display: false } }
         }
       }
     });
   }
 
-  // Resize observer — redraw charts when window resizes
-  if(window._chartResizeObserver) window._chartResizeObserver.disconnect();
-  window._chartResizeObserver = new ResizeObserver(()=>{
-    if(state.activeTab==='charts') {
-      requestAnimationFrame(()=>renderCharts(calcTotals()));
-    }
-  });
-  const firstChart=document.getElementById('chart-breakdown');
-  if(firstChart) window._chartResizeObserver.observe(firstChart.parentElement);
-
-  // 3. Budget rule bucket bar
-  const rule=RULES[state.activeRule];
-  const actualByBucket={};
-  rule.buckets.forEach(b=>actualByBucket[b.id]=0);
-  t.data.categories.forEach(cat=>{
-    const bId=cat.bucket||rule.buckets[0].id;
-    if(actualByBucket[bId]!==undefined) actualByBucket[bId]+=catTotal(cat);
-  });
-  const ctx3=document.getElementById('chart-buckets')?.getContext('2d');
-  if(ctx3){
-    chartInstances.buckets=new Chart(ctx3,{
-      type:'bar',
-      data:{
-        labels:rule.buckets.map(b=>b.label),
-        datasets:[
-          { label:'Budget', data:rule.buckets.map(b=>t.total*b.pct/100), backgroundColor:rule.buckets.map(b=>b.color+'66'), borderRadius:6 },
-          { label:'Actual', data:rule.buckets.map(b=>actualByBucket[b.id]||0), backgroundColor:rule.buckets.map(b=>b.color), borderRadius:6 },
+  // ── Chart 2: Income vs spending stacked bar ─────────────────────────────────
+  const ctx2 = document.getElementById('chart-income-spend')?.getContext('2d');
+  if (ctx2) {
+    chartInstances.incomeSpend = new Chart(ctx2, {
+      type: 'bar',
+      data: {
+        labels: ['Henry', 'Lauri'],
+        datasets: [
+          {
+            label: 'Shared expenses',
+            data: [t.henryShared, t.lauriShared],
+            backgroundColor: '#C0392Bcc', borderRadius: 0,
+            stack: 'spend',
+          },
+          {
+            label: 'Personal expenses',
+            data: [t.henryPersonal, t.lauriPersonal],
+            backgroundColor: '#B87333cc', borderRadius: 0,
+            stack: 'spend',
+          },
+          {
+            label: 'Remaining',
+            data: [Math.max(0, t.henryDisposable), Math.max(0, t.lauriDisposable)],
+            backgroundColor: '#0F6E56cc', borderRadius: 5,
+            stack: 'spend',
+          },
+          {
+            label: 'Income',
+            data: [t.henry, t.lauri],
+            backgroundColor: 'transparent',
+            borderColor: ['#534AB7','#534AB7'],
+            borderWidth: 2,
+            type: 'bar',
+            stack: 'income',
+            borderRadius: 5,
+          }
         ]
       },
-      options:{
-        responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{ labels:{color:textColor} } },
-        scales:{
-          x:{ ticks:{color:textColor}, grid:{color:gridColor} },
-          y:{ ticks:{color:textColor, callback:v=>Number(v).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})}, grid:{color:gridColor} }
+      options: {
+        ...sharedOpts,
+        scales: {
+          ...axisOpts(),
+          x: { ...axisOpts().x, stacked: true },
+          y: { ...axisOpts().y, stacked: false },
+        },
+        plugins: {
+          ...sharedOpts.plugins,
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const pct = ctx.dataset.label === 'Income' ? '' :
+                  ` (${((ctx.parsed.y / (ctx.datasetIndex < 2 ? t[ctx.dataIndex===0?'henry':'lauri'] : 1)) * 100).toFixed(0)}%)`;
+                return ` ${ctx.dataset.label}: ${fmtEur(ctx.parsed.y)}`;
+              }
+            }
+          }
         }
       }
     });
   }
+
+  // ── Chart 3: Budget rule — target vs actual ─────────────────────────────────
+  const rule = RULES[state.activeRule];
+  const actualByBucket = {};
+  rule.buckets.forEach(b => actualByBucket[b.id] = 0);
+  t.data.categories.forEach(cat => {
+    const bId = cat.bucket || rule.buckets[0].id;
+    if (actualByBucket[bId] !== undefined) actualByBucket[bId] += catTotal(cat);
+  });
+  const ctx3 = document.getElementById('chart-buckets')?.getContext('2d');
+  if (ctx3) {
+    chartInstances.buckets = new Chart(ctx3, {
+      type: 'bar',
+      data: {
+        labels: rule.buckets.map(b => b.label),
+        datasets: [
+          {
+            label: 'Target budget',
+            data: rule.buckets.map(b => t.total * b.pct / 100),
+            backgroundColor: rule.buckets.map(b => b.color + '44'),
+            borderColor: rule.buckets.map(b => b.color),
+            borderWidth: 2,
+            borderRadius: 5,
+          },
+          {
+            label: 'Actual spend',
+            data: rule.buckets.map(b => actualByBucket[b.id] || 0),
+            backgroundColor: rule.buckets.map(b => b.color + 'cc'),
+            borderRadius: 5,
+          }
+        ]
+      },
+      options: {
+        ...sharedOpts,
+        scales: axisOpts(),
+        plugins: {
+          ...sharedOpts.plugins,
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const bucket = rule.buckets[ctx.dataIndex];
+                const target = t.total * bucket.pct / 100;
+                const actual = actualByBucket[bucket.id] || 0;
+                const diff   = actual - target;
+                if (ctx.dataset.label === 'Actual spend') {
+                  return [
+                    ` Actual: ${fmtEur(actual)}`,
+                    ` Target: ${fmtEur(target)}`,
+                    ` ${diff > 0 ? '⚠ Over by ' + fmtEur(diff) : '✓ Under by ' + fmtEur(-diff)}`
+                  ];
+                }
+                return ` Target: ${fmtEur(ctx.parsed.y)} (${bucket.pct}% of income)`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // ── Chart 4: Disposable remaining ──────────────────────────────────────────
+  const ctx4 = document.getElementById('chart-disposable')?.getContext('2d');
+  if (ctx4) {
+    chartInstances.disposable = new Chart(ctx4, {
+      type: 'doughnut',
+      data: {
+        labels: ['Henry spent','Henry remaining','Lauri spent','Lauri remaining'],
+        datasets: [{
+          data: [
+            t.henryTotal, Math.max(0, t.henryDisposable),
+            t.lauriTotal, Math.max(0, t.lauriDisposable)
+          ],
+          backgroundColor: ['#534AB7aa','#534AB722','#0F6E56aa','#0F6E5622'],
+          borderWidth: 0,
+        }]
+      },
+      options: {
+        ...sharedOpts,
+        plugins: {
+          ...sharedOpts.plugins,
+          legend: { position:'bottom', labels:{ color:textColor, boxWidth:12, padding:10, font:{size:11} } },
+          tooltip: { callbacks: { label: ctx => ' ' + fmtEur(ctx.parsed) } }
+        }
+      }
+    });
+  }
+
+  // Resize observer
+  if (window._chartResizeObserver) window._chartResizeObserver.disconnect();
+  window._chartResizeObserver = new ResizeObserver(() => {
+    if (state.activeTab === 'charts') requestAnimationFrame(() => renderCharts(calcTotals()));
+  });
+  const firstWrap = document.getElementById('chart-breakdown')?.closest('.chart-wrap');
+  if (firstWrap) window._chartResizeObserver.observe(firstWrap);
 }
 
 // ─── Export: Excel ────────────────────────────────────────────────────────────
