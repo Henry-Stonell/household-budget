@@ -375,7 +375,7 @@ function renderCatRows(data, rH, rL) {
         <input type="number" class="sub-input" data-cidx="${cIdx}" data-sidx="${sIdx}"
           value="${sub.real||''}" placeholder="0" min="0" step="10" />
         <span class="diff-pill neutral">—</span>
-        <div class="split-control ${hasCustom?'is-custom':'}" data-cidx="${cIdx}" data-sidx="${sIdx}">
+        <div class="split-control ${hasCustom?'is-custom':''}" data-cidx="${cIdx}" data-sidx="${sIdx}">
           <div class="split-input-wrap">
             <span class="henry-share split-label-sm">H</span>
             <input type="number" class="split-pct-input henry-pct-input" title="Henry's % (auto-adjusts Lauri)"
