@@ -183,9 +183,11 @@ function calcTotals() {
   });
 
   // ── Net remaining (disposable) ───────────────────────────────────────────────
-  // Income − cost share of shared − personal − IOUs owed by this person
-  const henryDisposable = henry - henryShared - henryPersonal - henryDebtOwed;
-  const lauriDisposable = lauri - lauriShared - lauriPersonal - lauriDebtOwed;
+  // Income − shared share − personal − IOUs you owe + IOUs owed TO you
+  // Henry owes Lauri (henryDebtOwed) → reduces Henry, but increases Lauri
+  // Lauri owes Henry (lauriDebtOwed) → reduces Lauri, but increases Henry
+  const henryDisposable = henry - henryShared - henryPersonal - henryDebtOwed + lauriDebtOwed;
+  const lauriDisposable = lauri - lauriShared - lauriPersonal - lauriDebtOwed + henryDebtOwed;
 
   // For display totals (excluding debt — debt is a separate line)
   const henryTotal = henryShared + henryPersonal;
@@ -303,10 +305,16 @@ function renderDisposable(t) {
   const hOver = t.henryDisposable < 0;
   const lOver = t.lauriDisposable < 0;
 
-  const henryDebtLine = t.henryDebtOwed > 0.005
+  // IOU lines for Henry
+  const henryOwesLine   = t.henryDebtOwed > 0.005
     ? `<div class="disp-row"><span class="disp-label">IOUs owed to Lauri</span><span class="over">− ${fmt(t.henryDebtOwed)}</span></div>` : '';
-  const lauriDebtLine = t.lauriDebtOwed > 0.005
+  const henryOwedLine   = t.lauriDebtOwed > 0.005
+    ? `<div class="disp-row"><span class="disp-label">IOUs Lauri owes Henry</span><span class="positive">+ ${fmt(t.lauriDebtOwed)}</span></div>` : '';
+  // IOU lines for Lauri
+  const lauriOwesLine   = t.lauriDebtOwed > 0.005
     ? `<div class="disp-row"><span class="disp-label">IOUs owed to Henry</span><span class="over">− ${fmt(t.lauriDebtOwed)}</span></div>` : '';
+  const lauriOwedLine   = t.henryDebtOwed > 0.005
+    ? `<div class="disp-row"><span class="disp-label">IOUs Henry owes Lauri</span><span class="positive">+ ${fmt(t.henryDebtOwed)}</span></div>` : '';
 
   el.innerHTML = `
     <div class="disp-card">
@@ -314,7 +322,8 @@ function renderDisposable(t) {
       <div class="disp-row"><span class="disp-label">Income</span><span>${fmt(t.henry)}</span></div>
       <div class="disp-row"><span class="disp-label">Shared expenses (his share)</span><span>− ${fmt(t.henryShared)}</span></div>
       <div class="disp-row"><span class="disp-label">Personal expenses</span><span>− ${fmt(t.henryPersonal)}</span></div>
-      ${henryDebtLine}
+      ${henryOwesLine}
+      ${henryOwedLine}
       <div class="disp-row disp-total"><span class="disp-label">Net remaining</span><span class="${hOver?'over':''}">${fmt(t.henryDisposable)}</span></div>
     </div>
     <div class="disp-card">
@@ -322,7 +331,8 @@ function renderDisposable(t) {
       <div class="disp-row"><span class="disp-label">Income</span><span>${fmt(t.lauri)}</span></div>
       <div class="disp-row"><span class="disp-label">Shared expenses (her share)</span><span>− ${fmt(t.lauriShared)}</span></div>
       <div class="disp-row"><span class="disp-label">Personal expenses</span><span>− ${fmt(t.lauriPersonal)}</span></div>
-      ${lauriDebtLine}
+      ${lauriOwesLine}
+      ${lauriOwedLine}
       <div class="disp-row disp-total"><span class="disp-label">Net remaining</span><span class="${lOver?'over':''}">${fmt(t.lauriDisposable)}</span></div>
     </div>`;
 }

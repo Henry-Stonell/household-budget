@@ -760,3 +760,5 @@ select:focus, input:focus {
 }
 .chart-card h3 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
 .chart-wrap--tall { height: 360px; }
+
+.disp-row .positive { color: var(--lauri); font-weight: 500; }
