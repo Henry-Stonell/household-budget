@@ -762,3 +762,51 @@ select:focus, input:focus {
 .chart-wrap--tall { height: 360px; }
 
 .disp-row .positive { color: var(--lauri); font-weight: 500; }
+
+/* ── FX / Currency widget ─────────────────────────────────────────── */
+.fx-section { margin-bottom: 2rem; }
+
+.fx-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 1rem; margin-bottom: 0.75rem; flex-wrap: wrap;
+}
+.fx-header h2 { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+
+.fx-rate-badge {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--radius); padding: 6px 12px;
+}
+.fx-rate-text { font-size: 13px; font-weight: 500; color: var(--text); }
+.fx-rate-time { font-size: 11px; color: var(--text-faint); }
+.fx-refresh { padding: 3px 8px; font-size: 14px; }
+
+.fx-empty { font-size: 13px; color: var(--text-faint); padding: 0.5rem 0; }
+
+.fx-targets { display: flex; flex-direction: column; gap: 6px; margin-bottom: 0.75rem; }
+
+.fx-target-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px 1rem;
+}
+.fx-target-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.fx-target-label { font-size: 14px; font-weight: 500; }
+.fx-target-rate  { font-size: 11px; color: var(--text-faint); }
+
+.fx-target-amounts { display: flex; align-items: center; gap: 10px; }
+.fx-target-foreign { font-size: 15px; font-weight: 600; color: var(--text-muted); }
+.fx-arrow { font-size: 14px; color: var(--text-faint); }
+.fx-eur-needed {
+  font-size: 18px; font-weight: 700; color: var(--henry);
+  background: var(--henry-light); padding: 4px 12px;
+  border-radius: var(--radius-sm);
+}
+.fx-eur-needed.fx-no-rate { color: var(--text-faint); background: var(--bg); font-size: 13px; }
+
+.fx-add-row {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+}

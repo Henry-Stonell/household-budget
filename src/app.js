@@ -1,3 +1,44 @@
+
+// ─── Exchange rates ───────────────────────────────────────────────────────────
+
+const FX = {
+  rates: {},        // { GBP: 0.845, USD: 1.08, ... } relative to EUR
+  lastFetched: null,
+  loading: false,
+};
+
+async function fetchRates() {
+  if (FX.loading) return;
+  // Cache for 1 hour
+  if (FX.lastFetched && Date.now() - FX.lastFetched < 3600000) return;
+  FX.loading = true;
+  try {
+    const res  = await fetch('https://open.er-api.com/v6/latest/EUR');
+    const data = await res.json();
+    if (data.result === 'success') {
+      FX.rates = data.rates;
+      FX.lastFetched = Date.now();
+      renderFxWidget();
+    }
+  } catch(e) {
+    console.warn('Exchange rate fetch failed:', e);
+  } finally {
+    FX.loading = false;
+  }
+}
+
+// Convert amount in foreignCcy to EUR
+function toEUR(amount, ccy) {
+  if (ccy === 'EUR' || !FX.rates[ccy]) return amount;
+  return amount / FX.rates[ccy];
+}
+
+// Convert EUR to foreign currency
+function fromEUR(eurAmount, ccy) {
+  if (ccy === 'EUR' || !FX.rates[ccy]) return eurAmount;
+  return eurAmount * FX.rates[ccy];
+}
+
 // ─── Budget rules ─────────────────────────────────────────────────────────────
 // "Wants" bucket removed — personal budgets handle individual discretionary spend.
 // Buckets only cover SHARED expenses now.
@@ -68,7 +109,7 @@ const ICONS = ['🏠','🛒','🚗','⚡','💰','👶','🍽️','🎬','🏥',
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
-let state = { budget: null, activeRule: '50-30-20', activeTab: 'budget', plannerCatId: null };
+let state = { budget: null, activeRule: '50-30-20', activeTab: 'budget', plannerCatId: null, fxTargets: [] };
 
 // ─── Persistence ──────────────────────────────────────────────────────────────
 
@@ -90,6 +131,7 @@ function migrateState(s) {
       if (!cat.plan) cat.plan = { period:'monthly', items:[] };
     });
     if (!Array.isArray(s.budget.debts)) s.budget.debts = [];
+    if (!Array.isArray(s.fxTargets)) s.fxTargets = [];
     if (!s.budget.personal) s.budget.personal = {
       henry:{ collapsed:true, subs:[] },
       lauri:{ collapsed:true, subs:[] },
@@ -1433,6 +1475,107 @@ function addPlanItem(cat, t) {
   renderCategoryPlanner(cat, t);
 }
 
+
+// ─── FX Savings widget ────────────────────────────────────────────────────────
+
+const COMMON_CCYS = ['GBP','USD','CHF','DKK','SEK','PLN','JPY','CAD','AUD'];
+
+function renderFxWidget() {
+  const el = document.getElementById('fx-widget');
+  if (!el) return;
+
+  const rate = FX.rates['GBP'];
+  const rateStr = rate ? `1 GBP = €${(1/rate).toFixed(4)} · 1 EUR = £${rate.toFixed(4)}` : 'Fetching rates...';
+  const updated = FX.lastFetched ? new Date(FX.lastFetched).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : '—';
+
+  const targets = state.fxTargets || [];
+
+  el.innerHTML = `
+    <div class="fx-header">
+      <div>
+        <h2>Currency savings targets</h2>
+        <p class="section-hint">Set a savings target in a foreign currency — see how much EUR you need</p>
+      </div>
+      <div class="fx-rate-badge">
+        <span class="fx-rate-text">${rateStr}</span>
+        <span class="fx-rate-time">Updated ${updated}</span>
+        <button class="btn-ghost fx-refresh" id="btn-fx-refresh" title="Refresh rates">↻</button>
+      </div>
+    </div>
+
+    <div class="fx-targets" id="fx-targets-list">
+      ${targets.length === 0 ? '<p class="fx-empty">No targets yet — add one below.</p>' : ''}
+    </div>
+
+    <div class="fx-add-row">
+      <input type="text" id="fx-label" placeholder="What for? e.g. UK savings" style="flex:1;min-width:140px" />
+      <input type="number" id="fx-amount" placeholder="Target amount" min="0" step="1" style="width:130px" />
+      <select id="fx-ccy" style="width:90px">
+        ${COMMON_CCYS.map(c => `<option value="${c}" ${c==='GBP'?'selected':''}>${c}</option>`).join('')}
+      </select>
+      <button class="btn-primary" id="btn-add-fx-target">+ Add target</button>
+    </div>`;
+
+  // Render existing targets
+  const listEl = document.getElementById('fx-targets-list');
+  targets.forEach((target, i) => {
+    const ccy    = target.ccy || 'GBP';
+    const rate   = FX.rates[ccy];
+    const eurNeeded = rate ? target.amount / rate : null;
+    const eurStr = eurNeeded !== null
+      ? `<span class="fx-eur-needed">${fmt(eurNeeded)} EUR needed</span>`
+      : `<span class="fx-eur-needed fx-no-rate">Rate unavailable</span>`;
+    const rateDisplay = rate
+      ? `1 ${ccy} = €${(1/rate).toFixed(4)}`
+      : 'Loading rate...';
+
+    const row = document.createElement('div');
+    row.className = 'fx-target-row';
+    row.innerHTML = `
+      <div class="fx-target-info">
+        <span class="fx-target-label">${target.label}</span>
+        <span class="fx-target-rate">${rateDisplay}</span>
+      </div>
+      <div class="fx-target-amounts">
+        <span class="fx-target-foreign">${Number(target.amount).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})} ${ccy}</span>
+        <span class="fx-arrow">→</span>
+        ${eurStr}
+      </div>
+      <button class="btn-icon btn-del-fx" data-idx="${i}" title="Remove">✕</button>`;
+    listEl.appendChild(row);
+  });
+
+  // Events
+  document.getElementById('btn-fx-refresh')?.addEventListener('click', () => {
+    FX.lastFetched = null;
+    fetchRates();
+  });
+  document.getElementById('btn-add-fx-target')?.addEventListener('click', addFxTarget);
+  document.getElementById('fx-amount')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') addFxTarget();
+  });
+  listEl.querySelectorAll('.btn-del-fx').forEach(btn => {
+    btn.addEventListener('click', e => {
+      state.fxTargets.splice(+e.currentTarget.dataset.idx, 1);
+      saveState(); renderFxWidget();
+    });
+  });
+}
+
+function addFxTarget() {
+  const label  = document.getElementById('fx-label')?.value.trim();
+  const amount = parseFloat(document.getElementById('fx-amount')?.value);
+  const ccy    = document.getElementById('fx-ccy')?.value || 'GBP';
+  if (!label) { document.getElementById('fx-label')?.focus(); return; }
+  if (!amount || amount <= 0) { document.getElementById('fx-amount')?.focus(); return; }
+  if (!state.fxTargets) state.fxTargets = [];
+  state.fxTargets.push({ id: uid(), label, amount, ccy });
+  document.getElementById('fx-label').value  = '';
+  document.getElementById('fx-amount').value = '';
+  saveState();
+  renderFxWidget();
+}
+
 // ─── Hard reset ───────────────────────────────────────────────────────────────
 function hardReset() {
   if(!confirm('Reset all budget data to defaults? This cannot be undone.')) return;
@@ -1494,6 +1637,8 @@ async function init() {
   document.getElementById('btn-export-pdf').addEventListener('click',exportPDF);
   document.getElementById('btn-reset').addEventListener('click',hardReset);
 
+  fetchRates();
+  renderFxWidget();
   try {
     render();
   } catch(e) {
